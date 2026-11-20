@@ -770,7 +770,9 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
 .etiq{background:none;border:0;box-shadow:none;font-weight:700;font-size:11px;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff}
 .etiq::before{display:none}
 .leaflet-container{font:inherit}
-.legende{background:#fff;padding:7px 10px;border-radius:10px;font-size:12px;line-height:1.7;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.legende{background:#fff;padding:7px 10px;border-radius:10px;font-size:12px;line-height:1.7;box-shadow:0 2px 8px rgba(0,0,0,.15);max-width:260px;max-height:55vh;overflow:auto}
+.legende summary{font-weight:700;cursor:pointer;color:#00329E;list-style-position:inside}
+.legende[open] summary{margin-bottom:4px}
 .legende b,.legende s,.legende q{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
 .legende b{border-radius:3px}
 .legende s{border-radius:50%;text-decoration:none}
@@ -784,7 +786,7 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
   .onglets button{border:0;background:none;padding:10px;border-bottom:2px solid transparent;font-weight:600;color:var(--encre2)}
   .onglets button[aria-selected=true]{color:var(--encre);border-bottom-color:var(--accent)}
   #zoneCarte{display:none} #zoneCarte.on{display:block}
-  #carte{height:calc(100vh - 230px)}
+  #carte{height:calc(100dvh - 230px)}
   #zoneListe.off{display:none}
   .rues{columns:1}
 }
@@ -972,7 +974,7 @@ carte.fitBounds(coucheBV.getBounds(),{padding:[8,8]});
 const etiq=L.layerGroup(IDS.map(i=>L.marker(couches[i].getBounds().getCenter(),{icon:L.divIcon({className:"etiq",html:String(+i),iconSize:[22,14]}),interactive:false}))).addTo(carte);
 const lieux=L.layerGroup((D.points_passage||[]).filter(p=>["station","marche","supermarche","poste"].includes(p.t)).map(p=>L.circleMarker([p.y,p.x],{radius:p.t==="station"||p.t==="marche"?7:5,color:"#fff",weight:1.5,fillColor:p.t==="station"?"#1c1b19":p.t==="marche"?"#b0144f":"#6b4f8a",fillOpacity:1}).bindTooltip(`<b>${esc(p.nom||D.lib_points[p.t])}</b><br>${D.lib_points[p.t]}`)));
 let marq=null;
-const COUL_REC={"porte-à-porte":"#d55e00","tractage":"#0072b2","affichage":"#6a1b9a"};
+const COUL_REC={"porte-à-porte":"#d55e00","tractage":"#0072b2","affichage":"#009E73"};
 const epingles=L.layerGroup().addTo(carte);
 const centreBV=id=>couches[id].getBounds().getCenter();
 const bvDuPoint=(x,y)=>{ const f=GEO.features.find(f=>dansPoly(x,y,f.geometry)); return f?f.properties.bv:""; };
@@ -996,12 +998,13 @@ function majEpingles(){
   panneaux.forEach(p=>epingles.addLayer(L.marker([p.y,p.x],{icon:L.divIcon({className:"",iconSize:[13,13],iconAnchor:[6.5,6.5],html:"<div style='width:13px;height:13px;background:#6a1b9a;border:2px solid #fff;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.25)'></div>"})})
     .bindTooltip(`<b>Panneau d'affichage</b><br>${esc(p.adresse||"")}<br>Bureau ${+p.bv}`,{direction:"top",offset:[0,-6]}).on("click",()=>ouvrir(p.bv))));
 }
-const leg=L.control({position:"bottomleft"}); leg.onAdd=()=>{const d=L.DomUtil.create("div","legende");
-  d.innerHTML=`<div class="sep" style="margin-top:0;padding-top:0;border:0">Du plus utile au moins utile</div>`+Object.entries(STAT).map(([k,s],n)=>`<div><b style="background:${s[2]}${k==="stop"?";border:1px dashed #8C8C8C;box-sizing:border-box":""}"></b>${n+1}. ${s[0]}${k==="stop"?` <span style="color:var(--encre2)">(vote LFI ou Zemmour/RN parmi les plus forts)</span>`:""}</div>`).join("")
+const leg=L.control({position:"bottomleft"}); leg.onAdd=()=>{const d=L.DomUtil.create("details","legende"); if(window.innerWidth>820) d.open=true;
+  L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
+  d.innerHTML=`<summary>Légende</summary>`+`<div class="sep" style="margin-top:0;padding-top:0;border:0">Du plus utile au moins utile</div>`+Object.entries(STAT).map(([k,s],n)=>`<div><b style="background:${s[2]}${k==="stop"?";border:1px dashed #8C8C8C;box-sizing:border-box":""}"></b>${n+1}. ${s[0]}${k==="stop"?` <span style="color:var(--encre2)">(vote LFI ou Zemmour/RN parmi les plus forts)</span>`:""}</div>`).join("")
    +`<div class="sep">Épingles de terrain</div>`
    +`<div><s style="background:#d55e00"></s>Sortie porte-à-porte</div>`
    +`<div><s style="background:#0072b2"></s>Sortie tractage</div>`
-   +`<div><s style="background:#6a1b9a"></s>Sortie affichage</div>`
+   +`<div><s style="background:#009E73"></s>Sortie affichage</div>`
    +`<div><q style="background:#6a1b9a"></q>Panneau d'affichage libre</div>`;
   return d;}; leg.addTo(carte);
 function styler(){IDS.forEach(i=>couches[i].setStyle({fillColor:STAT[B[i]._statut][2],weight:i===sel?3.5:1,color:i===sel?"#1c1b19":"#5b574f",fillOpacity:B[i]._statut==="sec"?.45:B[i]._statut==="stop"?.7:.5,dashArray:B[i]._statut==="stop"&&i!==sel?"4 3":null}));
@@ -1132,7 +1135,8 @@ function ouvrir(i){sel=i;classer();styler();rendreDetail();$("#liste").style.dis
   cadrer();}
 function cadrer(){ const s=carte.getSize(); if(!(s.x>0&&s.y>0)) return; sel ? carte.fitBounds(couches[sel].getBounds(),{maxZoom:16,padding:[30,30]}) : carte.fitBounds(coucheBV.getBounds(),{padding:[8,8]}); }
 function fermer(){sel=null;$("#detail").style.display="none";$("#liste").style.display="block";styler();}
-function montrer(o){$$(".onglets button").forEach(b=>b.setAttribute("aria-selected",b.dataset.o===o));$("#zoneCarte").classList.toggle("on",o==="carte");$("#zoneListe").classList.toggle("off",o==="carte");if(o==="carte")setTimeout(()=>{carte.invalidateSize();cadrer();},50);}
+function montrer(o){$$(".onglets button").forEach(b=>b.setAttribute("aria-selected",b.dataset.o===o));$("#zoneCarte").classList.toggle("on",o==="carte");$("#zoneListe").classList.toggle("off",o==="carte");if(o==="carte")setTimeout(()=>{ajusterCarte();carte.invalidateSize();cadrer();},50);}
+function ajusterCarte(){ if(window.innerWidth>820) return; const c=$("#carte"), h=(window.visualViewport?window.visualViewport.height:window.innerHeight)-c.getBoundingClientRect().top-6; if(h>250) c.style.height=h+"px"; }
 $$(".onglets button").forEach(b=>b.onclick=()=>montrer(b.dataset.o));
 
 // ---------- recherche et géolocalisation
