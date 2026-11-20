@@ -1001,11 +1001,11 @@ function majEpingles(){
 const leg=L.control({position:"bottomleft"}); leg.onAdd=()=>{const d=L.DomUtil.create("details","legende"); if(window.innerWidth>820) d.open=true;
   L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
   d.innerHTML=`<summary>Légende</summary>`+`<div class="sep" style="margin-top:0;padding-top:0;border:0">Du plus utile au moins utile</div>`+Object.entries(STAT).map(([k,s],n)=>`<div><b style="background:${s[2]}${k==="stop"?";border:1px dashed #8C8C8C;box-sizing:border-box":""}"></b>${n+1}. ${s[0]}${k==="stop"?` <span style="color:var(--encre2)">(vote LFI ou Zemmour/RN parmi les plus forts)</span>`:""}</div>`).join("")
+   +`<div style="margin-top:4px"><q style="background:#6a1b9a"></q>Panneau d'affichage libre</div>`
    +`<div class="sep">Épingles de terrain</div>`
    +`<div><s style="background:#d55e00"></s>Sortie porte-à-porte</div>`
    +`<div><s style="background:#0072b2"></s>Sortie tractage</div>`
-   +`<div><s style="background:#009E73"></s>Sortie affichage</div>`
-   +`<div><q style="background:#6a1b9a"></q>Panneau d'affichage libre</div>`;
+   +`<div><s style="background:#009E73"></s>Sortie affichage</div>`;
   return d;}; leg.addTo(carte);
 function styler(){IDS.forEach(i=>couches[i].setStyle({fillColor:STAT[B[i]._statut][2],weight:i===sel?3.5:1,color:i===sel?"#1c1b19":"#5b574f",fillOpacity:B[i]._statut==="sec"?.45:B[i]._statut==="stop"?.7:.5,dashArray:B[i]._statut==="stop"&&i!==sel?"4 3":null}));
   canal==="tract"?lieux.addTo(carte):carte.removeLayer(lieux); if(sel) couches[sel].bringToFront();}
