@@ -730,7 +730,7 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
 .carte-bv .lieu{color:var(--encre3);font-size:13px}
 .pastille{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .p-prio{background:var(--prio);color:#fff} .p-poss{background:var(--poss-doux);color:#8a0a52;border:1px solid var(--poss)}
-.p-stop{background:var(--stop-doux);color:#5a5a5a} .p-sec{background:var(--fond);color:var(--encre2)}
+.p-stop{background:#fff;color:#5a5a5a;border:1px dashed #8C8C8C} .p-sec{background:var(--fond);color:var(--encre2)}
 .ligne{display:flex;gap:8px;margin-top:7px;font-size:14px}
 .ligne svg{margin-top:2px}
 .ok{color:var(--prio)} .ko{color:var(--stop)}
@@ -944,7 +944,7 @@ function score(i){const b=B[i],al=alertes(b).length;
 const N_PRIO=()=>canal==="pap"&&gen()?6:10;
 function classer(){const o=[...IDS].sort((a,c)=>score(c)-score(a));o.forEach((i,k)=>{const b=B[i];b._rang=k+1;
   b._statut = k<N_PRIO()?"prio" : (canal==="pap"&&alertes(b).length)?"stop" : k<N_PRIO()+10?"poss":"sec";});return o;}
-const STAT={prio:["Prioritaire","p-prio","#F90290"],poss:["Possible","p-poss","#FF8FC6"],sec:["Secondaire","p-sec","#D9D9D9"],stop:["Non prioritaire","p-stop","#8C8C8C"]};
+const STAT={prio:["Prioritaire","p-prio","#F90290"],poss:["Si vous avez du temps","p-poss","#FF8FC6"],sec:["En dernier","p-sec","#C8C8C8"],stop:["Ne pas s'attarder","p-stop","#FFFFFF"]};
 
 // ---------- carte
 const carte=L.map("carte",{zoomSnap:.25,zoomControl:false,preferCanvas:true,maxZoom:18,minZoom:12}); L.control.zoom({position:"topright"}).addTo(carte);
@@ -997,14 +997,14 @@ function majEpingles(){
     .bindTooltip(`<b>Panneau d'affichage</b><br>${esc(p.adresse||"")}<br>Bureau ${+p.bv}`,{direction:"top",offset:[0,-6]}).on("click",()=>ouvrir(p.bv))));
 }
 const leg=L.control({position:"bottomleft"}); leg.onAdd=()=>{const d=L.DomUtil.create("div","legende");
-  d.innerHTML=`<div class="sep" style="margin-top:0;padding-top:0;border:0">Du plus utile au moins utile</div>`+Object.entries(STAT).map(([k,s],n)=>`<div><b style="background:${s[2]}"></b>${n+1}. ${s[0]}${k==="stop"?` <span style="color:var(--encre2)">(vote LFI ou Zemmour/RN parmi les plus forts)</span>`:""}</div>`).join("")
+  d.innerHTML=`<div class="sep" style="margin-top:0;padding-top:0;border:0">Du plus utile au moins utile</div>`+Object.entries(STAT).map(([k,s],n)=>`<div><b style="background:${s[2]}${k==="stop"?";border:1px dashed #8C8C8C;box-sizing:border-box":""}"></b>${n+1}. ${s[0]}${k==="stop"?` <span style="color:var(--encre2)">(vote LFI ou Zemmour/RN parmi les plus forts)</span>`:""}</div>`).join("")
    +`<div class="sep">Épingles de terrain</div>`
    +`<div><s style="background:#d55e00"></s>Sortie porte-à-porte</div>`
    +`<div><s style="background:#0072b2"></s>Sortie tractage</div>`
    +`<div><s style="background:#6a1b9a"></s>Sortie affichage</div>`
    +`<div><q style="background:#6a1b9a"></q>Panneau d'affichage libre</div>`;
   return d;}; leg.addTo(carte);
-function styler(){IDS.forEach(i=>couches[i].setStyle({fillColor:STAT[B[i]._statut][2],weight:i===sel?3.5:1,color:i===sel?"#1c1b19":"#5b574f",fillOpacity:B[i]._statut==="sec"?.3:.5}));
+function styler(){IDS.forEach(i=>couches[i].setStyle({fillColor:STAT[B[i]._statut][2],weight:i===sel?3.5:1,color:i===sel?"#1c1b19":"#5b574f",fillOpacity:B[i]._statut==="sec"?.45:B[i]._statut==="stop"?.7:.5,dashArray:B[i]._statut==="stop"&&i!==sel?"4 3":null}));
   canal==="tract"?lieux.addTo(carte):carte.removeLayer(lieux); if(sel) couches[sel].bringToFront();}
 
 // ---------- rendu
