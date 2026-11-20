@@ -692,7 +692,13 @@ header img{height:40px;width:auto;display:block;background:#fff;padding:3px 5px;
 .seg{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--fond);border-radius:12px;padding:4px;gap:4px}
 .seg button{border:0;background:none;padding:10px;border-radius:9px;font-weight:600;display:flex;gap:8px;align-items:center;justify-content:center;color:var(--encre2);cursor:pointer;transition:background .15s,color .15s}
 .seg button[aria-pressed=true]{background:var(--carte);color:var(--encre);box-shadow:0 1px 2px rgba(0,0,0,.08),0 2px 8px rgba(0,0,0,.06)}
-.ligne-tract{display:flex;gap:8px;margin-top:10px;align-items:center}
+.ligne-tract{display:flex;gap:8px;margin-top:6px;align-items:center}
+.etape{font-family:Anton,Impact,sans-serif;font-size:15px;letter-spacing:.03em;text-transform:uppercase;color:var(--prio);margin:12px 0 6px;display:flex;gap:8px;align-items:center}
+.etape:first-child{margin-top:0}
+.etape .n{background:var(--prio);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.aide{font-size:12.5px;color:var(--encre2);margin:0 0 4px}
+.etape4{margin-top:10px;padding-top:8px;border-top:1px solid var(--ligne);color:var(--prio);font-weight:700;font-size:14px;text-decoration:underline;text-underline-offset:3px;display:flex;gap:8px;align-items:center;cursor:pointer}
+.etape4 .n{background:var(--prio);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;text-decoration:none;flex:none}
 .ligne-tract label{font-size:13px;color:var(--encre2);white-space:nowrap}
 select{flex:1;padding:10px 12px;border:1px solid var(--ligne);border-radius:10px;background:#fff;min-width:0}
 .cherche{display:flex;gap:8px;margin-top:10px;position:relative}
@@ -791,12 +797,16 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
 </header>
 
 <section class="sortie" id="sortie">
-  <div class="seg" role="group" aria-label="Type de sortie">
+  <h2 class="etape"><span class="n">1</span>Choisir l'activité</h2>
+  <div class="seg" role="group" aria-label="Étape 1 : choisir l'activité">
     <button data-canal="pap" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="M4 21V5l8-3 8 3v16"/><path d="M10 21v-6h4v6"/></svg>Porte-à-porte</button>
     <button data-canal="tract" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z"/><path d="M8 10h8M8 14h8M8 18h5"/></svg>Tractage</button>
     <button data-canal="affichage" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h16v10H4z"/><path d="M12 14v6M8 20h8"/></svg>Affichage</button>
   </div>
-  <div class="ligne-tract"><label for="tract">Tract du jour</label><select id="tract"><option value="general">Généraliste / candidat</option><option value="pouvoir_achat">Pouvoir d'achat</option><option value="ecologie">Écologie</option><option value="services_publics">Services publics (santé, école)</option><option value="logement">Logement</option><option value="defense">Défense, Europe</option><option value="securite">Sécurité intérieure</option></select></div>
+  <h2 class="etape"><span class="n">2</span>Choisir le sujet</h2>
+  <div class="ligne-tract"><label for="tract">Thème du tract du jour</label><select id="tract"><option value="general">Généraliste / candidat</option><option value="pouvoir_achat">Pouvoir d'achat</option><option value="ecologie">Écologie</option><option value="services_publics">Services publics (santé, école)</option><option value="logement">Logement</option><option value="defense">Défense, Europe</option><option value="securite">Sécurité intérieure</option></select></div>
+  <h2 class="etape"><span class="n">3</span>Où aller</h2>
+  <p class="aide">Les bureaux sont classés du plus prioritaire au moins prioritaire pour cette activité et ce sujet. Pour voir quoi faire sur place, touchez « Étape 4 : plus de détails » sous un bureau, ou touchez le bureau sur la carte. Vous pouvez aussi chercher une adresse :</p>
   <div class="cherche">
     <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
     <input id="q" type="text" autocomplete="off" placeholder="Adresse ou rue" aria-label="Chercher une adresse ou une rue">
@@ -1029,7 +1039,8 @@ function carteBV(i,court){const b=B[i],s=STAT[b._statut],al=alertes(b),c=cibles(
    ${signalMacronPP(b)===2?`<div class="ligne"><span class="pastille p-prio" style="margin-top:2px;white-space:normal">Macron 2022 (1er tour) et liste PS-PP 2024 au-dessus de Boulogne</span></div>`:""}
    ${(b.groupe_cible||[]).length?`<div class="ligne"><span class="pastille p-sec" style="margin-top:2px">${b.groupe_cible.includes("B")?"Diplômés, aisés, extrême droite faible":"Droite et centre hauts, extrême droite faible"} · cible de second tour</span></div>`:""}
    <div class="ligne">${IC.cible}<span><b>Ici :</b> ${c.map(x=>x.t).join(" · ")}</span></div>
-   ${al.length?`<div class="ligne">${IC.stop}<span><b>Ne pas s'attarder :</b> ${al.map(a=>a.t).join(" · ")}</span></div>`:""}</div>`;}
+   ${al.length?`<div class="ligne">${IC.stop}<span><b>Ne pas s'attarder :</b> ${al.map(a=>a.t).join(" · ")}</span></div>`:""}
+   <div class="etape4"><span class="n">4</span>Étape 4 : plus de détails <span aria-hidden="true">→</span></div></div>`;}
 function lierSync(){
   const i=$("#syncUrl"); if(!i) return;
   $("#syncOk").onclick=()=>{ let v=i.value.trim(); if(v && !/^https:\/\/script\.google\.com\//.test(v)){ toast("Ce lien ne ressemble pas à un script Google"); return; }
