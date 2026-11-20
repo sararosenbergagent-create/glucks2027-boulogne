@@ -944,7 +944,7 @@ function score(i){const b=B[i],al=alertes(b).length;
 const N_PRIO=()=>canal==="pap"&&gen()?6:10;
 function classer(){const o=[...IDS].sort((a,c)=>score(c)-score(a));o.forEach((i,k)=>{const b=B[i];b._rang=k+1;
   b._statut = k<N_PRIO()?"prio" : (canal==="pap"&&alertes(b).length)?"stop" : k<N_PRIO()+10?"poss":"sec";});return o;}
-const STAT={prio:["Prioritaire","p-prio","#F90290"],poss:["Possible","p-poss","#FF8FC6"],stop:["Non prioritaire","p-stop","#8C8C8C"],sec:["Secondaire","p-sec","#D9D9D9"]};
+const STAT={prio:["Prioritaire","p-prio","#F90290"],poss:["Possible","p-poss","#FF8FC6"],sec:["Secondaire","p-sec","#D9D9D9"],stop:["Non prioritaire","p-stop","#8C8C8C"]};
 
 // ---------- carte
 const carte=L.map("carte",{zoomSnap:.25,zoomControl:false,preferCanvas:true,maxZoom:18,minZoom:12}); L.control.zoom({position:"topright"}).addTo(carte);
@@ -997,7 +997,7 @@ function majEpingles(){
     .bindTooltip(`<b>Panneau d'affichage</b><br>${esc(p.adresse||"")}<br>Bureau ${+p.bv}`,{direction:"top",offset:[0,-6]}).on("click",()=>ouvrir(p.bv))));
 }
 const leg=L.control({position:"bottomleft"}); leg.onAdd=()=>{const d=L.DomUtil.create("div","legende");
-  d.innerHTML=Object.values(STAT).map(s=>`<div><b style="background:${s[2]}"></b>${s[0]}</div>`).join("")
+  d.innerHTML=`<div class="sep" style="margin-top:0;padding-top:0;border:0">Du plus utile au moins utile</div>`+Object.entries(STAT).map(([k,s],n)=>`<div><b style="background:${s[2]}"></b>${n+1}. ${s[0]}${k==="stop"?` <span style="color:var(--encre2)">(vote LFI ou Zemmour/RN parmi les plus forts)</span>`:""}</div>`).join("")
    +`<div class="sep">Épingles de terrain</div>`
    +`<div><s style="background:#d55e00"></s>Sortie porte-à-porte</div>`
    +`<div><s style="background:#0072b2"></s>Sortie tractage</div>`
