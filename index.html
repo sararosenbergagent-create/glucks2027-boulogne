@@ -953,6 +953,7 @@ $("#tract").value=tract;
 const gen=()=>tract==="general"||tract==="meeting";
 function score(i){const b=B[i],al=alertes(b).length;
   if(canal==="tract"){ return gen()? .5*R.passage[i]+.25*R.dens[i]+.25*POT[i] : .35*R.passage[i]+.15*R.dens[i]+.35*AFF[tract][i]+.15*POT[i]; }
+  if(tract==="meeting"){const sy=SCR.m26?.5*R.pp[i]+.5*R.mun[i]:R.pp[i]; const s=.8*sy+.2*R.vol[i]; return al? s*.5 : s;}
   let s=gen()?POT[i]:.55*AFF[tract][i]+.45*POT[i]; s+= [0,7,15][signalMacronPP(b)]; return al? s*.5 : s; }
 const N_PRIO=()=>canal==="pap"&&gen()?6:10;
 function classer(){calcPOT();const o=[...IDS].sort((a,c)=>score(c)-score(a));o.forEach((i,k)=>{const b=B[i];b._rang=k+1;
@@ -1147,7 +1148,7 @@ function rendreDetail(){const i=sel,b=B[i],s=STAT[b._statut],al=alertes(b),c=cib
      <div class="t3"><span></span><span class="h b">Ce bureau</span><span class="h">Boulogne</span><span class="h">France</span>
      ${[["Liste Judith Shan (PS)","shan_mun2026"],["Union gauche et écologistes (indication secondaire)","ug_mun2026"],["Participation","particip_mun2026"]].map(([l,k])=>`<span class="l">${l}</span><i class="v b num">${fr(b[k],1)} %</i><i class="v num">${fr(V[k],1)} %</i><i class="v num">—</i>`).join("")}</div>
      <p style="font-size:12.5px;color:var(--encre3)">Élection locale : pas de chiffre France comparable. La liste d'union réunit écologistes, PCF et LFI ; elle ne mesure pas le poids de LFI seul. Source : ministère de l'Intérieur, 15 mars 2026.</p></div>`:""}
-   <div class="bloc"><h4>Arguments du tract</h4>${gen()?`<p style="color:var(--encre2)">${tract==="meeting"?"Tract meeting : inviter au meeting, donner la date, l'heure et le lieu.":"Tract généraliste : présenter le candidat et le projet."}</p>`:ms.length?ms.map(m=>`<p>• ${esc(m.mesure)}${m.source?` <span style="color:var(--encre3);font-size:12.5px">(${esc(m.source)})</span>`:""}</p>`).join(""):`<p style="color:var(--encre2)">Le comité n'a pas encore ajouté les arguments de ce tract.</p>`}</div>
+   <div class="bloc"><h4>Arguments du tract</h4>${gen()?`<p style="color:var(--encre2)">${tract==="meeting"?"Tract meeting : inviter au grand meeting de lancement, dimanche 6 décembre 2026 à 14h30 (portes à 12h30), Paris Event Center, 20 avenue de la Porte de la Villette, Paris 19e. Entrée libre et gratuite ; l'inscription sur glucks2027.fr/meeting donne un accès prioritaire.":"Tract généraliste : présenter le candidat et le projet."}</p>`:ms.length?ms.map(m=>`<p>• ${esc(m.mesure)}${m.source?` <span style="color:var(--encre3);font-size:12.5px">(${esc(m.source)})</span>`:""}</p>`).join(""):`<p style="color:var(--encre2)">Le comité n'a pas encore ajouté les arguments de ce tract.</p>`}</div>
    <div class="bloc"><h4>${canal==="pap"?"Rues du bureau · cocher au fur et à mesure":"Rues du bureau"}</h4><div class="rues">${b.rues_toutes.map(r=>{const k=i+"|"+r;return canal==="pap"?`<label><input type="checkbox" data-k="${esc(k)}" ${coches[k]?"checked":""}>${esc(r)}</label>`:`<div style="padding:3px 0">${esc(r)}</div>`;}).join("")}</div></div>
    <div class="bloc pasimpr"><h4>Fin de sortie</h4><div class="saisie">
      <label style="grid-column:1/-1">Date<input type="date" id="sD" value="${aujourdhui()}" max="${aujourdhui()}"></label>
