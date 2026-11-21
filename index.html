@@ -1152,7 +1152,7 @@ function rendreDetail(){const i=sel,b=B[i],s=STAT[b._statut],al=alertes(b),c=cib
    <div class="bloc pasimpr"><h4>Fin de sortie</h4><div class="saisie">
      <label style="grid-column:1/-1">Date<input type="date" id="sD" value="${aujourdhui()}" max="${aujourdhui()}"></label>
      ${canal==="pap"?`<label>Portes frappées<input type="number" inputmode="numeric" min="0" id="sP"></label><label>Portes ouvertes<input type="number" inputmode="numeric" min="0" id="sO"></label>`:""}
-     ${canal==="tract"?`<label>Tracts donnés<input type="number" inputmode="numeric" min="0" id="sT"></label><label>Lieu<select id="sL"><option value="">Dans le bureau</option>${b.lieux.map(x=>`<option>${esc(x[1])}</option>`).join("")}</select></label>`:""}
+     ${canal==="tract"?`<label>Tracts donnés<input type="number" inputmode="numeric" min="0" id="sT"></label><label>Lieu<select id="sL"><option value="">Dans les rues du secteur</option>${b.lieux.map(x=>`<option>${esc(x[1])}</option>`).join("")}</select></label>`:""}
      ${canal==="affichage"?`<label>Panneaux posés<input type="number" inputmode="numeric" min="0" id="sPan"></label><label>Rue ou emplacement<input type="text" id="sL" placeholder="ex. rue Thiers, angle Victor Hugo"></label>`:""}
      <label style="grid-column:1/-1">Nature du tract${canal==="affichage"?" / de l'affiche":""} (texte libre)<input type="text" id="sNat" list="lstNat" placeholder="ex. tract pouvoir d'achat A5, affiche A3 candidate"><datalist id="lstNat">${[...new Set(Object.values(suivi).flat().map(x=>x.tract).filter(Boolean))].map(v=>`<option>${esc(v)}</option>`).join("")}</datalist></label>
      </div>
