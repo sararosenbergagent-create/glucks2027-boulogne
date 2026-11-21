@@ -1059,7 +1059,7 @@ const ADM_H="17c9e2385372504b561d2fad277745ef5aa9f54ffffd971e05f32c2724b051ab";
 let ADM_OK=false;
 function tout(){rendreListe(); if(sel&&$("#detail").style.display==="block") rendreDetail();}
 function adminHTML(){
-  if(!ADM_OK) return `<p style="font-size:13px;margin-top:10px">Réservé à l'équipe d'animation. Mot de passe :</p><p><input id="admPwd" type="password" autocomplete="off" style="width:60%"> <button class="btn" id="admGo">Déverrouiller</button></p>`;
+  if(!ADM_OK) return `<p style="font-size:13px;margin-top:10px">Réservé à l'équipe d'animation. Mot de passe :</p><p><input id="admPwd" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:55%"> <button class="btn" id="admVoir" type="button" aria-label="Afficher le mot de passe" title="Afficher le mot de passe">👁</button> <button class="btn" id="admGo">Déverrouiller</button></p>`;
   const nat=SCR.p22||SCR.e24;
   return `<h4 style="margin-top:10px">Scrutins pris en compte</h4>${SRV_CFG?`<p style="font-size:13px">Le réglage s'applique à tous les téléphones (enregistré dans le Google Sheet).</p>`:`<p class="lecture" style="border-left:3px solid var(--prio);padding-left:8px"><b>Attention :</b> le script Google n'est pas encore à jour. Les cases ne s'appliquent qu'à ce téléphone et ne sont pas enregistrées.</p>`}
    ${SCRUTINS.map(([k,l])=>`<label style="display:flex;gap:8px;align-items:center;padding:3px 0"><input type="checkbox" class="scr" data-k="${k}" ${SCR[k]?"checked":""}>${l}</label>`).join("")}
@@ -1071,7 +1071,8 @@ function lierAdmin(){
     const go=async()=>{ try{ const h=[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(p.value)))].map(x=>x.toString(16).padStart(2,"0")).join("");
       if(h===ADM_H){ADM_OK=true;ADM_PWD=p.value; tout(); toast("Admin déverrouillé");} else toast("Mot de passe incorrect"); }
       catch(e){ toast("Déverrouillage impossible sur ce navigateur"); } };
-    g.onclick=go; p.onkeydown=e=>{if(e.key==="Enter")go();}; }
+    g.onclick=go; p.onkeydown=e=>{if(e.key==="Enter")go();};
+    const vb=$("#admVoir"); if(vb) vb.onclick=()=>{const m=p.type==="password"; p.type=m?"text":"password"; vb.setAttribute("aria-label",m?"Masquer le mot de passe":"Afficher le mot de passe"); vb.title=vb.getAttribute("aria-label"); vb.style.opacity=m?"1":".6";}; }
   document.querySelectorAll(".scr").forEach(c=>c.onchange=async()=>{const avant={...SCR}; SCR[c.dataset.k]=c.checked;
     if(!SRV_CFG){ tout(); toast("Classement recalculé sur ce téléphone seulement"); return; }
     try{ const r=await fetch(SYNC.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"config",mdp:ADM_PWD,scrutins:SCR})});
