@@ -955,7 +955,7 @@ function score(i){const b=B[i],al=alertes(b).length;
   if(canal==="tract"){ return gen()? .5*R.passage[i]+.25*R.dens[i]+.25*POT[i] : .35*R.passage[i]+.15*R.dens[i]+.35*AFF[tract][i]+.15*POT[i]; }
   if(tract==="meeting"){const sy=SCR.m26?.5*R.pp[i]+.5*R.mun[i]:R.pp[i]; const s=.8*sy+.2*R.vol[i]; return al? s*.5 : s;}
   let s=gen()?POT[i]:.55*AFF[tract][i]+.45*POT[i]; s+= [0,7,15][signalMacronPP(b)]; return al? s*.5 : s; }
-const N_PRIO=()=>canal==="pap"&&gen()?6:10;
+const N_PRIO=()=>canal==="pap"&&gen()?8:10;
 function classer(){calcPOT();const o=[...IDS].sort((a,c)=>score(c)-score(a));o.forEach((i,k)=>{const b=B[i];b._rang=k+1;
   b._statut = k<N_PRIO()?"prio" : (canal==="pap"&&alertes(b).length)?"stop" : k<N_PRIO()+10?"poss":"sec";});return o;}
 const STAT={prio:["Prioritaire","p-prio","#F90290"],poss:["Si vous avez du temps","p-poss","#FF8FC6"],sec:["En dernier","p-sec","#C8C8C8"],stop:["Ne pas s'attarder","p-stop","#FFFFFF"]};
