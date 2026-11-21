@@ -1051,7 +1051,7 @@ function carteBV(i,court){const b=B[i],s=STAT[b._statut],al=alertes(b),c=cibles(
   return `<div class="carte-bv" data-bv="${i}" role="button" tabindex="0"><div class="haut"><div><h3>Bureau ${+i}</h3><div class="lieu">${esc(b.lieu_vote)}</div></div><span class="pastille ${s[1]}">${s[0]}</span></div>
    ${canal==="tract"&&b.lieux.length?`<div class="ligne">${IC.lieu}<span>${b.lieux.slice(0,3).map(x=>esc(x[1])).join(" · ")}</span></div>`:""}
    ${signalMacronPP(b)===2?`<div class="ligne"><span class="pastille p-sec" style="margin-top:2px;white-space:normal;font-weight:500">Bonus de classement : Macron 2022 (1er tour) et liste PS-PP 2024 au-dessus de la ville</span></div>`:""}
-   ${(b.groupe_cible||[]).length?`<div class="ligne"><span class="pastille p-sec" style="margin-top:2px">${b.groupe_cible.includes("B")?"Diplômés, aisés, extrême droite faible":"Droite et centre hauts, extrême droite faible"} · cible de second tour</span></div>`:""}
+   ${(b.groupe_cible||[]).length?`<div class="ligne"><span class="pastille p-sec" style="margin-top:2px">${b.groupe_cible.includes("B")?"Diplômés, aisés, extrême droite faible":"Droite et centre hauts, extrême droite faible"} · à garder pour un éventuel second tour</span></div>`:""}
    <div class="ligne">${IC.cible}<span><b>Ici :</b> ${c.map(x=>x.t).join(" · ")}</span></div>
    ${al.length?`<div class="ligne">${IC.stop}<span><b>Ne pas s'attarder :</b> ${al.map(a=>a.t).join(" · ")}</span></div>`:""}
    <div class="etape4"><span class="n">4</span>Étape 4 : plus de détails <span aria-hidden="true">→</span></div></div>`;}
