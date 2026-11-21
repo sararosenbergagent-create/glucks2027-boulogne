@@ -1051,7 +1051,7 @@ function carteBV(i,court){const b=B[i],s=STAT[b._statut],al=alertes(b),c=cibles(
   return `<div class="carte-bv" data-bv="${i}" role="button" tabindex="0"><div class="haut"><div><h3>Bureau ${+i}</h3><div class="lieu">${esc(b.lieu_vote)}</div></div><span class="pastille ${s[1]}">${s[0]}</span></div>
    ${canal==="tract"&&b.lieux.length?`<div class="ligne">${IC.lieu}<span>${b.lieux.slice(0,3).map(x=>esc(x[1])).join(" · ")}</span></div>`:""}
    ${signalMacronPP(b)===2?`<div class="ligne"><span class="pastille p-sec" style="margin-top:2px;white-space:normal;font-weight:500">Bonus de classement : Macron 2022 (1er tour) et liste PS-PP 2024 au-dessus de la ville</span></div>`:""}
-   ${(b.groupe_cible||[]).length?`<div class="ligne"><span class="pastille p-sec" style="margin-top:2px">${b.groupe_cible.includes("B")?"Diplômés, aisés, extrême droite faible":"Droite et centre hauts, extrême droite faible"} · à garder pour un éventuel second tour</span></div>`:""}
+   ${(b.groupe_cible||[]).length?`<div class="ligne"><span class="pastille p-sec" style="margin-top:2px">${b.groupe_cible.includes("B")?"Très diplômés, extrême droite faible":"Droite et centre hauts, extrême droite faible"} · à garder pour un éventuel second tour</span></div>`:""}
    <div class="ligne">${IC.cible}<span><b>Ici :</b> ${c.map(x=>x.t).join(" · ")}</span></div>
    ${al.length?`<div class="ligne">${IC.stop}<span><b>Ne pas s'attarder :</b> ${al.map(a=>a.t).join(" · ")}</span></div>`:""}
    <div class="etape4"><span class="n">4</span>Étape 4 : plus de détails <span aria-hidden="true">→</span></div></div>`;}
@@ -1138,7 +1138,7 @@ function rendreDetail(){const i=sel,b=B[i],s=STAT[b._statut],al=alertes(b),c=cib
       ${canal==="tract"?`<div class="bloc"><h4>Où se placer</h4>${b.lieux.length?b.lieux.map(x=>`<div class="ligne">${IC.lieu}<span>${esc(x[1])}</span></div>`).join(""):`<p>Aucun lieu de passage référencé. ${b.nb_commerces} commerces dans le bureau.</p>`}<p style="font-size:13px;color:var(--encre2)">Écoles : devant l'établissement, jamais à l'intérieur.</p></div>`:""}
    ${SCR.l25&&b.circ==="09"&&D.part2025&&b.maistre_2025_pct!=null?`<div class="bloc"><h4>Repère : législative partielle de février 2025</h4>
      <p style="font-size:16px"><b>Ce bureau : ${fr(b.maistre_2025_pct,1)} %</b> pour la droite (LR) · <b>${fr(D.part2025.moyenne_circ_pct,1)} %</b> dans la 9e circonscription</p>
-     ${(b.groupe_cible||[]).length?`<p class="pastille p-poss" style="display:inline-block">${b.groupe_cible.includes("B")?"Groupe à diplomatiser : diplômés, aisés, extrême droite faible":"Groupe modéré : droite et centre hauts, extrême droite faible"}</p>`:""}
+     ${(b.groupe_cible||[]).length?`<p class="pastille p-poss" style="display:inline-block">${b.groupe_cible.includes("B")?"Groupe très diplômé, extrême droite faible":"Groupe modéré : droite et centre hauts, extrême droite faible"}</p>`:""}
      <p>${b.surperf_maistre_2025>6?"Le centre a voté à droite ici : l'une des zones où la droite a le plus débordé sa moyenne.":b.surperf_maistre_2025<-6?"L'électorat du centre ne s'est pas reporté sur la droite ici : la droite reste nettement sous sa moyenne.":"La droite est proche de sa moyenne de circonscription ici."}</p>
      <p style="font-size:12.5px;color:var(--encre3)">Premier tour, 2 février 2025. Participation 30,8 % sur la circonscription. Source : préfecture des Hauts-de-Seine.</p></div>`:""}
    ${SCR.m26&&b.shan_mun2026!=null?`<div class="bloc"><h4>Repère : municipales 2026, 1er tour</h4>
