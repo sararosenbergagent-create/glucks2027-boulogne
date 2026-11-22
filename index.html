@@ -933,6 +933,7 @@ function carteOp(o,k){return `<div class="elec" style="border-left:3px solid var
 // ---------- état
 let canal=LS("t_canal","pap"), tract=LS("t_tract","general"), sel=null, ici=null;
 let suivi=LS("bb2_suivi",{}), mesures=LS("bb2_mesures",[]), coches=LS("t_rues",{});
+let IMM=LS("bb2_imm",{}), immSel=null, dernAdr=null; // fiches immeuble (étape 1, sur ce téléphone)
 // Google Sheet : coller l'URL du script déployé. Vide = enregistrement local seul.
 const SYNC={url:LS("bb2_sync","https://script.google.com/macros/s/AKfycbwzqzpigmYjzrSkybG2S7-q_NpRgLumr4etDLrJBAAJyQ0-lFMsV8VusiyLHU2UbyRh/exec"),file:LS("bb2_file",[])};
 let panneaux=(()=>{const loc=LS("bb2_panneaux",null); const off=(D.panneaux||[]).map((p,k)=>({x:p.x,y:p.y,bv:p.bv,adresse:p.adresse,officiel:true,id:"off"+k}));
@@ -940,7 +941,7 @@ let panneaux=(()=>{const loc=LS("bb2_panneaux",null); const off=(D.panneaux||[])
   const vus=new Set(off.map(p=>p.adresse)); return off.concat(loc.filter(p=>!vus.has(p.adresse)));})();
 let modePanneau=false;
 const rid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const CHAMPS=["bureau","id","date","type","tract","lieu","portes","ouvertes","tracts"];
+const CHAMPS=["bureau","id","date","type","tract","lieu","portes","ouvertes","tracts","panneaux","militant","numeros","commentaire"];
 async function envoyer(l){ if(!SYNC.url) return false;
   try{ const r=await fetch(SYNC.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(l)}); return r.ok; }catch(e){ return false; } }
 async function viderFile(){ if(!SYNC.url||!SYNC.file.length) return; const reste=[];
@@ -949,7 +950,7 @@ async function viderFile(){ if(!SYNC.url||!SYNC.file.length) return; const reste
 async function chargerSheet(){ if(!SYNC.url) return;
   try{ const r=await fetch(SYNC.url+(SYNC.url.includes("?")?"&":"?")+"lecture=1"); const j=await r.json(); if(!Array.isArray(j)) return; let n=0;
     j.forEach(x=>{ const bv=String(x.bureau).padStart(4,"0"); if(!B[bv]) return; suivi[bv]=suivi[bv]||[];
-      if(!suivi[bv].some(y=>y.id===x.id)){ suivi[bv].push({id:x.id,date:x.date,type:x.type,portes:+x.portes||0,ouvertes:+x.ouvertes||0,tracts:+x.tracts||0,note:x.tract||"",lieu:x.lieu||""}); n++; } });
+      if(!suivi[bv].some(y=>y.id===x.id)){ suivi[bv].push({id:x.id,date:x.date,type:x.type,portes:+x.portes||0,ouvertes:+x.ouvertes||0,tracts:+x.tracts||0,note:x.tract||"",tract:x.tract||"",lieu:x.lieu||"",numeros:x.numeros||"",commentaire:x.commentaire||"",militant:x.militant||""}); n++; } });
     if(n){ SV("bb2_suivi",suivi); toast(n+" enregistrements récupérés"); tout(); }
   }catch(e){} }
 $("#tract").value=tract;
@@ -1117,7 +1118,7 @@ function rendreAffichage(o){
 // Bureaux dont le périmètre a changé entre 2019 et 2022 (inscrits 24 : 1 319 puis 948 ; 25 : 679 puis 1 052).
 const PERIM={"0024":"le périmètre de ce bureau a changé entre 2019 et 2022 : environ 370 inscrits sont passés du bureau 24 au bureau 25. Les chiffres de 2017 et 2019 portent sur l'ancien périmètre.",
  "0025":"le périmètre de ce bureau a changé entre 2019 et 2022 : environ 370 inscrits sont arrivés du bureau 24. Les chiffres de 2017 et 2019 portent sur l'ancien périmètre."};
-function rendreDetail(){const i=sel,b=B[i],s=STAT[b._statut],al=alertes(b),c=cibles(b),ms=gen()?[]:mesures.filter(m=>m.theme===tract);
+function rendreDetail(){if(immSel&&IMM[immSel]&&canal==="pap"){rendreImm();return;} immSel=null;const i=sel,b=B[i],s=STAT[b._statut],al=alertes(b),c=cibles(b),ms=gen()?[]:mesures.filter(m=>m.theme===tract);
   const HORS_COUV=new Set(IDS.flatMap(j=>B[j].lieux.filter(x=>x[0]==="marche"||x[1]==="Marcel Sembat"||x[1]==="Grand Place"||x[0]==="centre_commercial").map(x=>x[1])));
   const fait=(suivi[i]||[]).reduce((t,x)=>t+(+x.portes||0),0), tractsFaits=(suivi[i]||[]).filter(x=>!HORS_COUV.has(x.lieu)).reduce((t,x)=>t+(+x.tracts||0),0),
     tractsHors=(suivi[i]||[]).filter(x=>HORS_COUV.has(x.lieu)).reduce((t,x)=>t+(+x.tracts||0),0);
@@ -1155,17 +1156,21 @@ function rendreDetail(){const i=sel,b=B[i],s=STAT[b._statut],al=alertes(b),c=cib
      <p style="font-size:12.5px;color:var(--encre3)">Élection locale : pas de chiffre France comparable. La liste d'union réunit écologistes, PCF et LFI ; elle ne mesure pas le poids de LFI seul. Source : ministère de l'Intérieur, 15 mars 2026.</p></div>`:""}
    <div class="bloc"><h4>Arguments du tract</h4>${gen()?`<p style="color:var(--encre2)">${tract==="meeting"?"Tract meeting : inviter au grand meeting de lancement, dimanche 6 décembre 2026 à 14h30 (portes à 12h30), Paris Event Center, 20 avenue de la Porte de la Villette, Paris 19e. Entrée libre et gratuite ; l'inscription sur glucks2027.fr/meeting donne un accès prioritaire.":"Tract généraliste : présenter le candidat et le projet."}</p>`:ms.length?ms.map(m=>`<p>• ${esc(m.mesure)}${m.source?` <span style="color:var(--encre3);font-size:12.5px">(${esc(m.source)})</span>`:""}</p>`).join(""):`<p style="color:var(--encre2)">Le comité n'a pas encore ajouté les arguments de ce tract.</p>`}</div>
    <div class="bloc"><h4>${canal==="pap"?"Rues du bureau · cocher au fur et à mesure":"Rues du bureau"}</h4><div class="rues">${b.rues_toutes.map(r=>{const k=i+"|"+r;return canal==="pap"?`<label><input type="checkbox" data-k="${esc(k)}" ${coches[k]?"checked":""}>${esc(r)}</label>`:`<div style="padding:3px 0">${esc(r)}</div>`;}).join("")}</div></div>
+   ${canal==="pap"?blocImm(i):""}
    <div class="bloc pasimpr"><h4>Fin de sortie</h4><div class="saisie">
      <label style="grid-column:1/-1">Date<input type="date" id="sD" value="${aujourdhui()}" max="${aujourdhui()}"></label>
      ${canal==="pap"?`<label>Portes frappées<input type="number" inputmode="numeric" min="0" id="sP"></label><label>Portes ouvertes<input type="number" inputmode="numeric" min="0" id="sO"></label>`:""}
      ${canal==="tract"?`<label>Tracts donnés<input type="number" inputmode="numeric" min="0" id="sT"></label><label>Lieu<select id="sL"><option value="">Dans les rues du secteur</option>${b.lieux.map(x=>`<option>${esc(x[1])}</option>`).join("")}</select></label>`:""}
      ${canal==="affichage"?`<label>Panneaux posés<input type="number" inputmode="numeric" min="0" id="sPan"></label><label>Rue ou emplacement<input type="text" id="sL" placeholder="ex. rue Thiers, angle Victor Hugo"></label>`:""}
+     ${canal==="pap"?`<label style="grid-column:1/-1">Numéros faits (facultatif)<input type="text" id="sNum" placeholder="ex. rue Thiers : 2 à 40 côté pair, 15, 17"></label>`:""}
      <label style="grid-column:1/-1">Nature du tract${canal==="affichage"?" / de l'affiche":""} (texte libre)<input type="text" id="sNat" list="lstNat" placeholder="ex. tract pouvoir d'achat A5, affiche A3 candidate"><datalist id="lstNat">${[...new Set(Object.values(suivi).flat().map(x=>x.tract).filter(Boolean))].map(v=>`<option>${esc(v)}</option>`).join("")}</datalist></label>
+     <label style="grid-column:1/-1">Commentaire (facultatif)<textarea id="sCom" rows="2" placeholder="ex. bâtiment B fait, digicode en panne, à reprendre samedi" style="width:100%;padding:10px;border:1px solid var(--ligne);border-radius:10px;font-size:16px;font-family:inherit"></textarea></label>
+     <label style="grid-column:1/-1">Votre prénom ou nom de militant (facultatif, gardé sur ce téléphone)<input type="text" id="sMil" autocomplete="name" value="${esc(LS("bb2_militant",""))}"></label>
      </div>
      <p style="margin-top:10px"><button class="btn plein" id="sOk">Enregistrer</button> <button class="btn" onclick="window.print()">Imprimer</button>${SYNC.url?"":` <span style="font-size:12px;color:var(--encre3)">Enregistré sur ce téléphone</span>`}</p>
-     <p style="font-size:12.5px;color:var(--encre3)">Uniquement des chiffres. Jamais de nom ni d'opinion d'une personne.</p>
-     ${(suivi[i]||[]).length?`<h4 style="margin-top:12px">Déjà enregistré sur ce bureau</h4>${[...suivi[i]].map((x,k)=>[x,k]).sort((a,c)=>String(c[0].date).localeCompare(String(a[0].date))).map(([x,k])=>`<div class="ligne" style="justify-content:space-between;align-items:center"><span>${dateFr(x.date)} · ${x.type||"?"}${x.tract?` · ${esc(x.tract)}`:""} · ${x.portes?`${x.portes} portes${x.ouvertes?`, ${x.ouvertes} ouvertes`:""}`:x.tracts?`${x.tracts} tracts`:`${x.panneaux||0} panneaux`}${x.lieu?` · ${esc(x.lieu)}`:""}</span><button class="btn lien" data-suppr="${k}" style="padding:2px 0">Retirer</button></div>`).join("")}`:""}</div>`;
-  $("#ret").onclick=fermer;
+     <p style="font-size:12.5px;color:var(--encre3)">Jamais de nom d'habitant ni d'opinion sur une personne.</p>
+     ${(suivi[i]||[]).length?`<h4 style="margin-top:12px">Déjà enregistré sur ce bureau</h4>${[...suivi[i]].map((x,k)=>[x,k]).sort((a,c)=>String(c[0].date).localeCompare(String(a[0].date))).map(([x,k])=>`<div class="ligne" style="justify-content:space-between;align-items:center"><span>${dateFr(x.date)} · ${x.type||"?"}${x.tract?` · ${esc(x.tract)}`:""} · ${x.portes?`${x.portes} portes${x.ouvertes?`, ${x.ouvertes} ouvertes`:""}`:x.tracts?`${x.tracts} tracts`:`${x.panneaux||0} panneaux`}${x.lieu?` · ${esc(x.lieu)}`:""}${x.numeros?` · n° ${esc(x.numeros)}`:""}${x.militant?` · par ${esc(x.militant)}`:""}${x.commentaire?`<br><span style="color:var(--encre3);font-size:13px">${esc(x.commentaire)}</span>`:""}</span><button class="btn lien" data-suppr="${k}" style="padding:2px 0">Retirer</button></div>`).join("")}`:""}</div>`;
+  $("#ret").onclick=fermer; lierImm(i);
   $$("#detail [data-suppr]").forEach(x=>x.onclick=()=>{ if(confirm("Retirer cette sortie ?")){ suivi[i].splice(+x.dataset.suppr,1); SV("bb2_suivi",suivi); rendreDetail(); } });
   $$("#detail .rues input").forEach(x=>x.onchange=()=>{coches[x.dataset.k]=x.checked;SV("t_rues",coches);});
   $("#sOk").onclick=()=>{const v=s=>+($(s)?.value)||0; const p=canal==="pap"?v("#sP"):0, o=canal==="pap"?v("#sO"):0, tr=canal==="tract"?v("#sT"):0, pa=canal==="affichage"?v("#sPan"):0;
@@ -1174,13 +1179,73 @@ function rendreDetail(){const i=sel,b=B[i],s=STAT[b._statut],al=alertes(b),c=cib
     if(canal==="tract"&&!tr){toast("Indiquez le nombre de tracts donnés");return;}
     if(canal==="affichage"&&!pa){toast("Indiquez le nombre de panneaux posés");return;}
     const dt=$("#sD").value; if(!dt){toast("Indiquez la date");return;} if(dt>aujourdhui()){toast("La date ne peut pas être dans le futur");return;}
-    const ligne={bureau:i,id:rid(),date:dt,type:canal==="pap"?"porte-à-porte":canal==="tract"?"tractage":"affichage",tract:($("#sNat")?.value||"").trim(),lieu:($("#sL")?.value||"").trim(),portes:p,ouvertes:o,tracts:tr,panneaux:pa};
+    const ligne={bureau:i,id:rid(),date:dt,type:canal==="pap"?"porte-à-porte":canal==="tract"?"tractage":"affichage",tract:($("#sNat")?.value||"").trim(),lieu:($("#sL")?.value||"").trim(),portes:p,ouvertes:o,tracts:tr,panneaux:pa,militant:($("#sMil")?.value||"").trim(),numeros:($("#sNum")?.value||"").trim(),commentaire:($("#sCom")?.value||"").trim()}; SV("bb2_militant",ligne.militant);
     (suivi[i]=suivi[i]||[]).push({...ligne}); SV("bb2_suivi",suivi);
     if(SYNC.url){ envoyer(ligne).then(ok=>{ if(!ok){ SYNC.file.push(ligne); SV("bb2_file",SYNC.file); toast("Enregistré ici, envoi au Sheet en attente"); } else toast("Enregistré et envoyé au Sheet"); }); }
     else toast("Sortie enregistrée, merci");
     majEpingles(); rendreDetail();};
 }
-function ouvrir(i){sel=i;classer();styler();rendreDetail();$("#liste").style.display="none";$("#detail").style.display="block";$("#detail").scrollTop=0;
+// ---------- fiche immeuble (étape 1) : une fiche par numéro de rue, bâtiment facultatif, chiffres seulement
+const ETAGE=n=>n===0?"Rez-de-chaussée":n===1?"1er étage":n+"e étage";
+function etatImm(m){const e=m.etages;if(e.length&&e.every(x=>x.fait))return"Terminé";if(e.some(x=>x.fait||x.p>0))return"Entamé";return"Non commencé";}
+function svImm(){SV("bb2_imm",IMM);}
+function trouverAdr(v){const n=norm(v||"");return n?IDX.find(a=>!a.t&&a.n===n)||null:null;}
+function blocImm(i){const l=Object.values(IMM).filter(m=>m.bv===i).sort((a,b)=>a.adresse.localeCompare(b.adresse,"fr",{numeric:true}));
+  return `<div class="bloc pasimpr"><h4>Immeubles · une fiche par immeuble (essai)</h4>
+   ${l.length?l.map(m=>`<div class="ligne" style="justify-content:space-between;align-items:center"><button class="btn lien" data-imm="${m.id}" style="text-align:left;white-space:normal">${esc(m.adresse)}${m.bat?` · bât. ${esc(m.bat)}`:""}</button><span class="pastille p-sec">${etatImm(m)} · ${m.etages.filter(x=>x.fait).length}/${m.etages.length} niveaux</span></div>`).join(""):`<p style="font-size:13.5px;color:var(--encre2);margin:0">Aucun immeuble enregistré sur ce téléphone pour ce bureau.</p>`}
+   <div class="saisie">
+    <label style="grid-column:1/-1">Adresse de l'immeuble (numéro et rue)<input type="text" id="immQ" autocomplete="off" value="${esc(dernAdr?dernAdr.lib:"")}" placeholder="ex. 12 rue Thiers"></label>
+    <div class="resultats" id="immRes" style="position:static;grid-column:1/-1"></div>
+    <label>Bâtiment (facultatif)<input type="text" id="immBat" placeholder="ex. B, escalier 2"></label>
+    <label>Étages au-dessus du rez-de-chaussée<input type="number" inputmode="numeric" min="0" max="40" id="immN"></label>
+   </div>
+   <p id="immBv" style="font-size:13.5px;color:var(--encre2);margin:6px 0 0"></p>
+   <p style="margin-top:8px"><button class="btn plein" id="immOk">Ouvrir la fiche de cet immeuble</button></p>
+   <p style="font-size:12.5px;color:var(--encre3)">Le bureau est trouvé tout seul à partir de l'adresse. Pendant l'essai, les fiches restent sur ce téléphone. Jamais de nom d'habitant.</p></div>`;}
+function lierImm(i){$$("#detail [data-imm]").forEach(b=>b.onclick=()=>ouvrirImm(b.dataset.imm));
+  const q=$("#immQ"); if(!q) return; let choix=trouverAdr(q.value);
+  const voirBv=()=>{$("#immBv").textContent=choix?`Bureau ${+choix.bv}, trouvé à partir de l'adresse${choix.bv!==i?" : la fiche sera rangée dans ce bureau.":"."}`:"";};
+  voirBv();
+  q.oninput=()=>{choix=trouverAdr(q.value);voirBv();const n=norm(q.value),r=$("#immRes");if(n.length<2){r.classList.remove("on");return;}const w=n.split(" ");
+    const l=IDX.filter(a=>!a.t&&w.every(x=>a.n.includes(x))).slice(0,6);
+    r.innerHTML=l.length?l.map((a,k)=>`<button type="button" data-k="${k}">${esc(a.lib)}<small>Bureau ${+a.bv}</small></button>`).join(""):`<div style="padding:12px 14px;color:var(--encre2)">Adresse introuvable dans la liste de Boulogne.</div>`;
+    r.classList.add("on"); r.querySelectorAll("button").forEach(b=>b.onmousedown=e=>{e.preventDefault();choix=l[+b.dataset.k];q.value=choix.lib;r.classList.remove("on");voirBv();});};
+  q.onblur=()=>setTimeout(()=>{const r=$("#immRes");if(r)r.classList.remove("on");},150);
+  $("#immOk").onclick=()=>{ if(!choix) choix=trouverAdr(q.value); if(!choix){toast("Choisissez l'adresse dans la liste proposée");return;}
+    const bat=$("#immBat").value.trim(), cle=norm(choix.lib)+"|"+norm(bat);
+    let m=Object.values(IMM).find(x=>x.cle===cle);
+    if(m){toast("Cette fiche existe déjà : elle s'ouvre");ouvrirImm(m.id);return;}
+    const nv=$("#immN").value, n=parseInt(nv,10); if(nv===""||isNaN(n)||n<0||n>40){toast("Indiquez le nombre d'étages (0 si rez-de-chaussée seul)");return;}
+    m={id:"imm"+rid(),cle,adresse:choix.lib,bv:choix.bv,x:choix.x,y:choix.y,bat,acces:"",etages:[...Array(n+1).keys()].map(k=>({n:k,p:0,o:0,fait:false})),cree:aujourdhui(),maj:aujourdhui()};
+    IMM[m.id]=m; svImm(); toast(choix.bv!==i?`Fiche créée, rangée dans le bureau ${+choix.bv}`:"Fiche créée"); ouvrirImm(m.id);};
+}
+function ouvrirImm(id){const m=IMM[id];if(!m)return; if(sel!==m.bv){sel=m.bv;classer();styler();cadrer();} immSel=id; rendreImm(); $("#detail").scrollTop=0; if(window.innerWidth<=820) window.scrollTo({top:0});}
+function rendreImm(){const m=IMM[immSel],e=m.etages,f=e.filter(x=>x.fait).length,tp=e.reduce((s,x)=>s+x.p,0),to=e.reduce((s,x)=>s+x.o,0);
+  const cpt=(k,c,v,lib)=>`<span style="display:inline-flex;align-items:center;gap:6px">${lib}<button class="btn" type="button" data-c="${k}|${c}|-1" aria-label="${lib} : moins un" style="padding:6px 14px">−</button><b class="num" style="min-width:24px;text-align:center">${v}</b><button class="btn" type="button" data-c="${k}|${c}|1" aria-label="${lib} : plus un" style="padding:6px 14px">+</button></span>`;
+  const dern=e[e.length-1];
+  $("#detail").innerHTML=`<button class="btn lien retour pasimpr" id="immRet">← Retour au bureau ${+m.bv}</button>
+   <div class="bloc"><h3 style="font-size:19px;margin:0">${esc(m.adresse)}${m.bat?` · bât. ${esc(m.bat)}`:""}</h3>
+    <div style="color:var(--encre3);font-size:13px">Bureau ${+m.bv}, trouvé à partir de l'adresse</div>
+    <div class="chiffres" style="margin-top:10px"><span>Avancement</span><b>${etatImm(m)}</b><span>Niveaux faits</span><b class="num">${f} sur ${e.length}</b><span>Portes frappées</span><b class="num">${tp}</b><span>Portes ouvertes</span><b class="num">${to}</b></div>
+    <div class="saisie"><label style="grid-column:1/-1">Accès<select id="immAcc">${["","Digicode","Interphone","Gardien","Ouvert"].map(a=>`<option value="${a}" ${m.acces===a?"selected":""}>${a||"Non précisé"}</option>`).join("")}</select></label></div></div>
+   <div class="bloc"><h4>Par étage, du haut vers le bas</h4>
+    ${e.map((x,k)=>[x,k]).reverse().map(([x,k])=>`<div style="border-top:1px solid var(--ligne);padding:9px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b>${ETAGE(x.n)}</b><label style="display:flex;gap:6px;align-items:center;font-size:14px"><input type="checkbox" data-fait="${k}" ${x.fait?"checked":""} style="width:22px;height:22px">Étage fait</label></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:6px;font-size:13.5px;color:var(--encre2)">${cpt(k,"p",x.p,"Frappées")}${cpt(k,"o",x.o,"Ouvertes")}</div></div>`).join("")}
+    <p style="margin-top:8px"><button class="btn" id="immPlus">+ Ajouter un étage</button> ${e.length>1&&!dern.p&&!dern.fait?`<button class="btn" id="immMoins">− Retirer le dernier étage</button>`:""}</p></div>
+   <div class="bloc pasimpr"><p style="font-size:12.5px;color:var(--encre3);margin:0">Pendant l'essai, cette fiche reste sur ce téléphone. Ses chiffres ne s'ajoutent pas à « Portes déjà faites » du bureau : remplissez aussi la Fin de sortie. Jamais de nom d'habitant.</p>
+    <p style="margin-top:8px"><button class="btn lien" id="immSuppr">Retirer cette fiche de ce téléphone</button></p></div>`;
+  const sauve=()=>{m.maj=aujourdhui();svImm();const y=window.scrollY,d=$("#detail").scrollTop;rendreImm();window.scrollTo(0,y);$("#detail").scrollTop=d;};
+  $("#immRet").onclick=()=>{immSel=null;rendreDetail();};
+  $("#immAcc").onchange=ev=>{m.acces=ev.target.value;sauve();};
+  $$("#detail [data-c]").forEach(b=>b.onclick=()=>{const [k,c,d]=b.dataset.c.split("|"),x=e[+k];x[c]=Math.max(0,x[c]+(+d));
+    if(x.o>x.p){x.o=x.p; if(c==="o") toast("Plus de portes ouvertes que de portes frappées ?");} sauve();});
+  $$("#detail [data-fait]").forEach(c=>c.onchange=()=>{e[+c.dataset.fait].fait=c.checked;sauve();});
+  $("#immPlus").onclick=()=>{if(e.length>40){toast("40 étages au maximum");return;}e.push({n:e.length,p:0,o:0,fait:false});sauve();};
+  const mo=$("#immMoins"); if(mo) mo.onclick=()=>{e.pop();sauve();};
+  $("#immSuppr").onclick=()=>{if(confirm("Retirer la fiche de cet immeuble de ce téléphone ?")){delete IMM[m.id];svImm();immSel=null;rendreDetail();}};
+}
+function ouvrir(i){sel=i;immSel=null;classer();styler();rendreDetail();$("#liste").style.display="none";$("#detail").style.display="block";$("#detail").scrollTop=0;
   if(window.innerWidth<=820){montrer("liste");window.scrollTo({top:0});}
   cadrer();}
 function cadrer(){ const s=carte.getSize(); if(!(s.x>0&&s.y>0)) return; sel ? carte.fitBounds(couches[sel].getBounds(),{maxZoom:16,padding:[30,30]}) : carte.fitBounds(coucheBV.getBounds(),{padding:[8,8]}); }
@@ -1194,7 +1259,7 @@ const IDX=D.index_adresses.concat((D.commerces||[]).map(([l,bv,x,y,t])=>[l,bv,x,
 function chercher(v){const n=norm(v);if(n.length<2){$("#res").classList.remove("on");return;}const m=n.split(" ");
   const r=IDX.filter(a=>m.every(w=>a.n.includes(w))).slice(0,8);
   $("#res").innerHTML=r.length?r.map((a,k)=>`<button data-k="${k}">${esc(a.lib)}<small>${a.t?a.t+" · ":""}Bureau ${+a.bv} · ${STAT[B[a.bv]._statut][0]}</small></button>`).join(""):`<div style="padding:12px 14px;color:var(--encre2)">Aucune adresse trouvée à Boulogne.</div>`;
-  $("#res").classList.add("on");$$("#res button").forEach(b=>b.onmousedown=e=>{e.preventDefault();const a=r[+b.dataset.k];poser(a.y,a.x,a.lib);ici=a.bv;ouvrir(a.bv);$("#res").classList.remove("on");$("#q").blur();});}
+  $("#res").classList.add("on");$$("#res button").forEach(b=>b.onmousedown=e=>{e.preventDefault();const a=r[+b.dataset.k];dernAdr=a.t?null:a;poser(a.y,a.x,a.lib);ici=a.bv;ouvrir(a.bv);$("#res").classList.remove("on");$("#q").blur();});}
 $("#q").oninput=e=>chercher(e.target.value); $("#q").onblur=()=>setTimeout(()=>$("#res").classList.remove("on"),150);
 function poser(y,x,lib){if(marq)carte.removeLayer(marq);marq=L.circleMarker([y,x],{radius:8,color:"#fff",weight:3,fillColor:"#b0144f",fillOpacity:1}).addTo(carte).bindTooltip(esc(lib),{permanent:true,direction:"right",offset:[10,0]});}
 function dansPoly(x,y,g){const P=g.type==="MultiPolygon"?g.coordinates:[g.coordinates];const inR=(r)=>{let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const[xi,yi]=r[i],[xj,yj]=r[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c;}return c;};return P.some(p=>inR(p[0])&&!p.slice(1).some(inR));}
@@ -1208,7 +1273,7 @@ $("#geo").onclick=()=>{if(!navigator.geolocation){toast("Localisation indisponib
 function importerMesures(e){const f=e.target.files[0];if(!f)return;f.text().then(t=>{const al={};Object.entries(TH).forEach(([k,v])=>{al[k]=k;al[norm(v.lib)]=k;});const n=[];
   t.replace(/^\ufeff/,"").split(/\r?\n/).filter(Boolean).forEach((l,k)=>{const[th,me,...s]=l.split(";");if(k===0&&norm(th)==="theme")return;const key=al[norm(th||"")];if(key&&(me||"").trim())n.push({theme:key,mesure:me.trim(),source:s.join(";").trim()});});
   if(!n.length){toast("Aucun argument reconnu dans ce fichier");return;}mesures=n;SV("bb2_mesures",mesures);toast(`${n.length} arguments importés`);rendreListe();});}
-function exporterSuivi(){let t="bureau;date;type;tract;portes;ouvertes;tracts;panneaux;lieu\n",n=0;Object.entries(suivi).forEach(([bv,l])=>l.forEach(x=>{t+=`${bv};${x.date};${x.type||""};${(x.tract||"").replace(/;/g,",")};${x.portes||0};${x.ouvertes||0};${x.tracts||0};${x.panneaux||0};${(x.lieu||x.note||"").replace(/;/g,",")}\n`;n++;}));
+function exporterSuivi(){let t="bureau;date;type;tract;portes;ouvertes;tracts;panneaux;lieu;numeros;commentaire;militant\n",n=0;Object.entries(suivi).forEach(([bv,l])=>l.forEach(x=>{t+=`${bv};${x.date};${x.type||""};${(x.tract||"").replace(/;/g,",")};${x.portes||0};${x.ouvertes||0};${x.tracts||0};${x.panneaux||0};${(x.lieu||"").replace(/;/g,",")};${(x.numeros||"").replace(/;/g,",")};${(x.commentaire||"").replace(/[;\n]/g," ")};${(x.militant||"").replace(/;/g,",")}\n`;n++;}));
   if(!n){toast("Aucune sortie enregistrée");return;}const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+t],{type:"text/csv"}));a.download="comptes_rendus_terrain.csv";a.click();}
 
 // ---------- commandes
