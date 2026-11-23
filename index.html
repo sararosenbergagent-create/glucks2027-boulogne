@@ -843,7 +843,7 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
   </div>
   <h2 class="etape"><span class="n">2</span><span id="etape2T">Choisir le sujet</span></h2>
   <div class="ligne-tract"><label for="tract">Thème du tract</label><select id="tract"><option value="general">Généraliste / candidat</option><option value="meeting">Invitation au meeting</option><option value="inscription">Inscription sur les listes électorales</option><option value="pouvoir_achat">Pouvoir d'achat</option><option value="ecologie">Écologie</option><option value="services_publics">Services publics (santé, école)</option><option value="logement">Logement</option><option value="defense">Défense, Europe</option><option value="securite">Sécurité intérieure</option></select></div>
-  <div id="etape2Aff" style="display:none;margin-top:6px"><button class="btn plein gros" type="button" id="btnRel" style="width:100%">Je signale un panneau</button></div>
+  <div id="etape2Aff" style="display:none;margin-top:6px"><button class="btn plein gros" type="button" id="btnRel" style="width:100%">Je signale un affichage</button></div>
   <h2 class="etape"><span class="n">3</span>Où aller</h2>
   <p class="aide">Les bureaux sont classés du plus prioritaire au moins prioritaire pour cette activité et ce sujet. Pour voir quoi faire sur place, touchez « Étape 4 : plus de détails » sous un bureau, ou touchez le bureau sur la carte. Vous pouvez aussi chercher une adresse :</p>
   <div class="cherche">
@@ -1209,7 +1209,7 @@ function ouvrirReleve(adr){ const off=panneaux.filter(p=>p.officiel); const p=ad
     const liste=(pos)=>{ const l=off.map(x=>[x,pos?Math.hypot((x.x-pos[1])*73300,(x.y-pos[0])*111320):null]);
       l.sort((a,b)=>pos?a[1]-b[1]:(prioPan(a[0])[0]-prioPan(b[0])[0]||a[0].adresse.localeCompare(b[0].adresse)));
       return l.map(([x,d])=>{const pr=prioPan(x); return `<button type="button" class="cand" data-adr="${esc(x.adresse)}"><b>${esc(x.adresse)}</b><small>${d!=null?`à ${Math.round(d)} m · `:""}<span class="pastille ${pr[0]<=2?"p-alerte":"p-sec"}" style="font-size:11px;padding:1px 7px">${pr[1]}</span></small></button>`;}).join(""); };
-    FEU.innerHTML=`<div class="panneau">${enteteFeuille("Je signale un panneau")}
+    FEU.innerHTML=`<div class="panneau">${enteteFeuille("Je signale un affichage")}
      <p style="margin:10px 0 4px"><button class="btn" type="button" id="relGeo" style="width:100%">Panneaux autour de moi</button></p>
      <p style="margin:8px 0 4px;color:var(--encre2);font-size:14px">Choisissez le panneau :</p><div id="relListe">${liste(null)}</div></div>`;
     FEU.classList.add("on"); $("#feuX").onclick=fermerFeuille;
@@ -1218,7 +1218,7 @@ function ouvrirReleve(adr){ const off=panneaux.filter(p=>p.officiel); const p=ad
       navigator.geolocation.getCurrentPosition(g=>{ $("#relListe").innerHTML=liste([g.coords.latitude,g.coords.longitude]); lier(); },()=>toast("Position refusée ou indisponible"),{enableHighAccuracy:true,timeout:10000}); };
     return; }
   const pr=prioPan(p), der=pr[2], deja=new Set(der?candsDe(der).map(x=>x.toLowerCase()):[]);
-  FEU.innerHTML=`<div class="panneau">${enteteFeuille("Je signale un panneau")}
+  FEU.innerHTML=`<div class="panneau">${enteteFeuille("Je signale un affichage")}
    <p style="margin:10px 0 0"><b>${esc(p.adresse)}</b><br><button class="btn lien" type="button" id="relChg">Changer de panneau</button></p>
    ${der?`<p style="margin:2px 0 0;font-size:13px;color:var(--encre3)">Dernier relevé le ${dateFr(der.date)} : ${esc(candsDe(der).join(", ")||"aucun candidat noté")}</p>`:""}
    <h4>Notre affiche est</h4><div class="rel-choix">${["visible","recouverte","absente"].map(v=>`<button type="button" data-na="${v}">${v[0].toUpperCase()+v.slice(1)}</button>`).join("")}</div>
