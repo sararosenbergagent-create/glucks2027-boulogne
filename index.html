@@ -710,6 +710,7 @@ select{flex:1;padding:10px 12px;border:1px solid var(--ligne);border-radius:10px
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 14px;border-radius:10px;border:1px solid var(--ligne);background:#fff;font-weight:600;cursor:pointer;white-space:nowrap}
 .btn:active{background:var(--fond)}
 .btn.plein{background:var(--accent);border-color:var(--accent);color:#fff}
+/*chantiers-23nov*/.btn.rose{background:var(--rose);border-color:var(--rose);color:#fff}.emo-lieu{display:inline-block;width:20px;flex:0 0 20px;text-align:center;font-size:15px;line-height:1.3}.mention-benevole{font-size:11px;color:var(--encre3);text-align:center;padding:10px 0}@media (max-width:820px){details.legende{font-size:13px}#zoneCarte #carte{min-height:180px}}
 .btn.lien{border:0;background:none;padding:6px 0;color:var(--accent)}
 .resultats{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--ligne);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:1200;max-height:50vh;overflow:auto;display:none}
 .resultats.on{display:block}
@@ -890,6 +891,7 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
   <div id="zoneListe">
     <div id="liste"></div>
     <div id="detail"></div>
+    <p class="mention-benevole">Projet bénévole créé par Sara Rosenberg</p>
   </div>
   <div id="zoneCarte"><div id="carte"></div></div>
 </main>
@@ -1008,7 +1010,7 @@ let panneaux=(()=>{const loc=LS("bb2_panneaux",null); const off=(D.panneaux||[])
   const vus=new Set(off.map(p=>p.adresse)); return off.concat(loc.filter(p=>!vus.has(p.adresse)));})();
 let modePanneau=false;
 const rid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const CHAMPS=["bureau","id","date","type","tract","lieu","portes","ouvertes","tracts","panneaux","militant","numeros","commentaire","theme"];
+const CHAMPS=["bureau","id","date","type","tract","lieu","portes","ouvertes","tracts","panneaux","militant","numeros","commentaire","theme","objections","argument"];
 async function envoyer(l){ if(!SYNC.url) return false;
   try{ const r=await fetch(SYNC.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(l)}); return r.ok; }catch(e){ return false; } }
 async function viderFile(){ if(!SYNC.url||!SYNC.file.length) return; const reste=[];
@@ -1018,7 +1020,7 @@ async function chargerSheet(){ if(!SYNC.url) return;
   try{ const r=await fetch(SYNC.url+(SYNC.url.includes("?")?"&":"?")+"lecture=1"); const j=await r.json(); if(!Array.isArray(j)) return; let n=0;
     const avant=Object.values(suivi).flat().length, neuf={}, vus=new Set();
     j.forEach(x=>{ const bv=String(x.bureau).padStart(4,"0"); if(!B[bv]) return; vus.add(String(x.id));
-      (neuf[bv]=neuf[bv]||[]).push({id:x.id,date:x.date,type:x.type,portes:+x.portes||0,ouvertes:+x.ouvertes||0,tracts:+x.tracts||0,panneaux:+x.panneaux||0,note:x.tract||"",tract:x.tract||"",lieu:x.lieu||"",numeros:x.numeros||"",commentaire:x.commentaire||"",militant:"",theme:x.theme||""}); });
+      (neuf[bv]=neuf[bv]||[]).push({id:x.id,date:x.date,type:x.type,portes:+x.portes||0,ouvertes:+x.ouvertes||0,tracts:+x.tracts||0,panneaux:+x.panneaux||0,note:x.tract||"",tract:x.tract||"",lieu:x.lieu||"",numeros:x.numeros||"",commentaire:x.commentaire||"",militant:"",theme:x.theme||"",objections:x.objections||"",argument:x.argument||""}); });
     SYNC.file.forEach(l=>{ const bv=String(l.bureau).padStart(4,"0"); if(!B[bv]||vus.has(String(l.id))) return; (neuf[bv]=neuf[bv]||[]).push({...l,bureau:bv,militant:""}); });
     suivi=neuf; SV("bb2_suivi",suivi); n=Object.values(suivi).flat().length;
     if(n!==avant){ tout(); if(canal==="affichage") rendreListe(); majEpingles(); }
@@ -1144,6 +1146,8 @@ const IC={ok:`<svg class="i ok" viewBox="0 0 24 24"><path d="M12 21s-7-5.5-7-11a
   cible:`<svg class="i ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>`,
   stop:`<svg class="i ko" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>`,
   lieu:`<svg class="i" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z"/></svg>`};
+const EMOJI_LIEU={ecole:"🏫",entree_metro:"Ⓜ️",supermarche:"🛒",poste:"📮",station:"🚇",marche:"🧺",place:"🏛️",centre_commercial:"🏬"};
+function icLieu(t){const e=EMOJI_LIEU[t]; return e?`<span class="emo-lieu" aria-hidden="true">${e}</span>`:`<span class="emo-lieu"></span>`;}
 function rendreListe(){const o=classer(); styler();
   if(canal==="affichage"){ rendreAffichage(o); return; }
   const titre=canal==="tract"?"Où tracter":"Où faire du porte-à-porte";
@@ -1167,9 +1171,9 @@ function rendreListe(){const o=classer(); styler();
 }
 function carteBV(i,court){const b=B[i],s=STAT[b._statut],al=alertes(b),c=cibles(b);
   return `<div class="carte-bv" data-bv="${i}" role="button" tabindex="0"><div class="haut"><div><h3>Bureau ${+i}</h3><div class="lieu">Bureau de vote : ${esc(b.lieu_vote)}</div></div><span class="pastille ${s[1]}">${s[0]}</span></div>
-   ${canal==="tract"&&b.lieux.length?`<div class="ligne">${IC.lieu}<span>${b.lieux.slice(0,3).map(x=>esc(x[1])).join(" · ")}</span></div>`:""}
+   ${canal==="tract"&&b.lieux.length?`<div class="ligne" style="flex-wrap:wrap;gap:4px 10px">${b.lieux.slice(0,3).map(x=>`<span style="display:inline-flex;align-items:flex-start;min-width:0">${icLieu(x[0])}<span>${esc(x[1])}</span></span>`).join("")}</div>`:""}
    ${signalMacronPP(b)===2?`<div class="ligne"><span class="pastille p-sec" style="margin-top:2px;white-space:normal;font-weight:500">Bonus de classement : Macron 2022 (1er tour) et liste PS-PP 2024 au-dessus de la ville</span></div>`:""}
-   ${(b.groupe_cible||[]).length?`<div class="ligne"><span class="pastille p-sec" style="margin-top:2px">${b.groupe_cible.includes("B")?"Très diplômés, extrême droite faible":"Droite et centre hauts, extrême droite faible"} · à garder pour un éventuel second tour</span></div>`:""}
+   ${(b.groupe_cible||[]).length?`<div class="ligne"><span class="pastille p-sec" style="margin-top:2px;white-space:normal;max-width:100%">${b.groupe_cible.includes("B")?"Très diplômés, extrême droite faible":"Droite et centre hauts, extrême droite faible"} · à garder pour un éventuel second tour</span></div>`:""}
    <div class="ligne">${IC.cible}<span><b>Ici :</b> ${c.map(x=>x.t).join(" · ")}</span></div>
    ${al.length?`<div class="ligne">${IC.stop}<span><b>Ne pas s'attarder :</b> ${al.map(a=>a.t).join(" · ")}</span></div>`:""}
    <div class="etape4"><span class="n">4</span>Étape 4 : plus de détails <span aria-hidden="true">→</span></div></div>`;}
@@ -1301,7 +1305,7 @@ function ouvrirCollage(pre){ const off=panneaux.filter(p=>p.officiel).sort((a,b)
     if(nA){ const s=$("#cSect").value; parBv[s]=(parBv[s]||0)+nA; }
     const mil=($("#cMil").value||"").trim(), com=($("#cCom").value||"").trim();
     Object.entries(parBv).forEach(([bv,n])=>{
-      const ligne={bureau:bv,id:rid(),date:dt,type:"affichage",tract:"",theme:"",lieu:"",portes:0,ouvertes:0,tracts:0,panneaux:n,militant:mil,numeros:"",commentaire:com};
+      const ligne={bureau:bv,id:rid(),date:dt,type:"affichage",tract:"",theme:"",lieu:"",portes:0,ouvertes:0,tracts:0,panneaux:n,militant:mil,numeros:"",commentaire:com,objections:"",argument:""};
       (suivi[bv]=suivi[bv]||[]).push({...ligne,militant:""});
       if(SYNC.url) envoyer(ligne).then(ok=>{ if(!ok){ SYNC.file.push(ligne); SV("bb2_file",SYNC.file); } }); });
     SV("bb2_suivi",suivi);
@@ -1318,7 +1322,7 @@ function ouvrirChoixPanneau(p){ const pr=prioPan(p);
   FEU.innerHTML=`<div class="panneau">${enteteFeuille(esc(p.adresse))}
    <p style="margin:8px 0 12px;font-size:13.5px;color:${pr[0]<=2?"#B3261E":"var(--encre2)"}">${pr[1]}</p>
    <p><button class="btn plein gros" type="button" id="chCol" style="width:100%">J'ai collé ici</button></p>
-   <p><button class="btn gros" type="button" id="chRel" style="width:100%">Je signale ce panneau</button></p>
+   <p><button class="btn rose gros" type="button" id="chRel" style="width:100%">Je signale ce panneau</button></p>
    <p><button class="btn lien" type="button" id="chCarte">Voir sur la carte</button></p></div>`;
   FEU.classList.add("on"); $("#feuX").onclick=fermerFeuille;
   $("#chCol").onclick=()=>ouvrirCollage(p.adresse); $("#chRel").onclick=()=>ouvrirReleve(p.adresse);
@@ -1356,7 +1360,7 @@ function rendreAffichage(o){
    ${panneaux.map((p,k)=>[p,k]).sort((a,c)=>prioPan(a[0])[0]-prioPan(c[0])[0]).map(([p,k])=>{/*affichage-adresses*/const prR=prioPan(p);const pr=(p.proches||[]).filter(Boolean);const sect=pr.length>1?`À la limite des bureaux ${pr.map(b=>+b).join(" et ")}`:`Secteur du bureau ${+p.bv||"hors Boulogne"}`;return `<div class="carte-bv" data-acarte="${k}" role="button" tabindex="0"><div class="haut"><div><h3>${esc(p.adresse)}</h3><div class="lieu">${sect}</div></div><span class="pastille p-sec">${!p.officiel?"ajouté":p.av?"à vérifier":"recensé"}</span></div>${prR[1]?`<div class="ligne"><span class="pastille ${prR[0]<=2?"p-alerte":"p-sec"}" style="white-space:normal">${prR[1]}</span>${prR[2]&&candsDe(prR[2]).length?`<span style="font-size:13px;color:var(--encre2)"> ${esc(candsDe(prR[2]).join(", "))}</span>`:""}</div>`:""}<div class="ligne"><span>${p.officiel?(p.av?"Emplacement approximatif (l'annuaire ne donne pas de numéro exact). À confirmer sur place.":"Adresse exacte (annuaire absurdediffusion.eu)"):"Relevé par l'équipe, non officiel"}</span></div></div>`;}).join("")}
    <div class="titre-liste" style="margin-top:14px"><b>Bureaux qui ont un panneau</b><span>${Object.keys(parBv).filter(i=>B[i]).length} bureaux</span></div>
    <p style="margin:-4px 2px 10px;color:var(--encre2);font-size:13.5px">Les autres bureaux n'ont aucun panneau d'affichage libre recensé.</p>
-  ${Object.keys(parBv).filter(i=>B[i]).sort((a,c)=>parBv[c]-parBv[a]||(+a)-(+c)).map(i=>{const b=B[i];return `<div class="carte-bv" data-bv="${i}" role="button" tabindex="0"><div class="haut"><div><h3>Bureau ${+i}</h3><div class="lieu">${STAT[b._statut][0]}</div></div><span class="pastille p-sec">${parBv[i]} panneau${parBv[i]>1?"x":""} d'affichage libre dans le secteur</span></div></div>`;}).join("")}
+  ${Object.keys(parBv).filter(i=>B[i]).sort((a,c)=>parBv[c]-parBv[a]||(+a)-(+c)).map(i=>{const b=B[i];return `<div class="carte-bv" data-bv="${i}" role="button" tabindex="0"><div class="haut"><div><h3>Bureau ${+i}</h3><div class="lieu">${STAT[b._statut][0]}</div></div><span class="pastille p-sec" style="white-space:normal;max-width:100%">${parBv[i]} panneau${parBv[i]>1?"x":""} d'affichage libre dans le secteur</span></div></div>`;}).join("")}
    <details class="comite"><summary>Admin - Ne pas toucher</summary>${adminHTML()}</details><details class="comite"><summary>Forme du fichier CSV</summary><p><code>adresse;latitude;longitude</code>, une ligne par panneau. Exemple : <code>12 rue Thiers;48.8371;2.2409</code>.</p></details>`;
   $$("#liste .carte-bv").forEach(c=>c.onclick=()=>{if(c.dataset.acarte!==undefined){const p=panneaux[+c.dataset.acarte];if(p){ if(p.officiel&&canal==="affichage"){ ouvrirChoixPanneau(p); return; } if(window.innerWidth<=820)montrer("carte");setTimeout(()=>{carte.invalidateSize();carte.setView([p.y,p.x],18);},60);}}else ouvrir(c.dataset.bv);});
   lierSync(); $("#btnPan").onclick=()=>{modePanneau=!modePanneau;toast(modePanneau?"Cliquez sur la carte à l'endroit du panneau":"Ajout terminé");rendreListe();carte.getContainer().style.cursor=modePanneau?"crosshair":"";};
@@ -1396,7 +1400,7 @@ function rendreDetail(){if(immSel&&IMM[immSel]&&canal==="pap"){rendreImm();retur
      <p style="margin-top:8px;font-size:13.5px">${canal==="pap"?"À la porte : si la personne se dit acquise à LFI ou à Zemmour, remercier et passer à la suivante.":"En tractage : ne pas engager de débat avec une personne acquise à LFI ou à Zemmour, donner le tract et passer à la suivante."}</p></div>
    ${canal==="affichage"?`<div class="bloc"><h4>Panneaux d'affichage libre de ce bureau</h4>${(()=>{const l=panneaux.filter(p=>p.bv===i); return l.length?l.map(p=>`<div class="ligne">${IC.lieu}<span>${esc(p.adresse)}${p.officiel?"":' <span style="color:var(--encre3);font-size:12px">(ajouté par vous)</span>'}</span></div>`).join(""):'<p style="color:var(--encre2)">Aucun panneau recensé dans ce bureau.</p>';})()}
      <p style="font-size:12.5px;color:var(--encre3)">Source : annuaire absurdediffusion.eu, consulté le 20 novembre 2026. Les emplacements indiqués « angle » ou « face au » sont géocodés à la rue : vérifier sur place.</p></div>`:""}
-      ${canal==="tract"?`<div class="bloc"><h4>Où se placer</h4>${b.lieux.length?b.lieux.map(x=>`<div class="ligne">${IC.lieu}<span>${esc(x[1])}</span></div>`).join(""):`<p>Aucun lieu de passage référencé. ${b.nb_commerces} commerces dans le bureau.</p>`}<p style="font-size:13px;color:var(--encre2)">Écoles : devant l'établissement, jamais à l'intérieur.</p></div>`:""}
+      ${canal==="tract"?`<div class="bloc"><h4>Où se placer</h4>${b.lieux.length?b.lieux.map(x=>`<div class="ligne">${icLieu(x[0])}<span>${esc(x[1])}</span></div>`).join(""):`<p>Aucun lieu de passage référencé. ${b.nb_commerces} commerces dans le bureau.</p>`}</div>`:""}
    ${SCR.l25&&b.circ==="09"&&D.part2025&&b.maistre_2025_pct!=null?`<div class="bloc"><h4>Repère : législative partielle de février 2025</h4>
      <p style="font-size:16px"><b>Ce bureau : ${fr(b.maistre_2025_pct,1)} %</b> pour la droite (LR) · <b>${fr(D.part2025.moyenne_circ_pct,1)} %</b> dans la 9e circonscription</p>
      ${(b.groupe_cible||[]).length?`<p class="pastille p-poss" style="display:inline-block">${b.groupe_cible.includes("B")?"Groupe très diplômé, extrême droite faible":"Groupe modéré : droite et centre hauts, extrême droite faible"}</p>`:""}
@@ -1418,11 +1422,12 @@ function rendreDetail(){if(immSel&&IMM[immSel]&&canal==="pap"){rendreImm();retur
      ${canal==="pap"?`<label style="grid-column:1/-1">Numéros faits (facultatif)<input type="text" id="sNum" placeholder="ex. rue Thiers : 2 à 40 côté pair, 15, 17"></label>`:""}
      <label style="grid-column:1/-1">Nature du tract${canal==="affichage"?" / de l'affiche":""} (texte libre)<input type="text" id="sNat" list="lstNat" placeholder="ex. tract pouvoir d'achat A5, affiche A3 candidate"><datalist id="lstNat">${[...new Set(Object.values(suivi).flat().map(x=>x.tract).filter(Boolean))].map(v=>`<option>${esc(v)}</option>`).join("")}</datalist></label>
      <label style="grid-column:1/-1">Commentaire (facultatif)<textarea id="sCom" rows="2" placeholder="${canal==="affichage"?"ex. Attal encore visible, panneau abîmé":canal==="tract"?"ex. beaucoup de passage vers 18 h, à refaire":"ex. bâtiment B fait, digicode en panne, à reprendre samedi"}" style="width:100%;padding:10px;border:1px solid var(--ligne);border-radius:10px;font-size:16px;font-family:inherit"></textarea></label>
+     ${canal==="pap"||canal==="tract"?`<label style="grid-column:1/-1">Objections fréquentes (facultatif)<textarea id="sObj" rows="2" maxlength="300" placeholder="ex. objection sur les déplacements" style="width:100%;padding:10px;border:1px solid var(--ligne);border-radius:10px;font-size:16px;font-family:inherit"></textarea></label><label style="grid-column:1/-1">Argument qui fait mouche (facultatif)<textarea id="sArg" rows="2" maxlength="300" placeholder="ex. argument sur le pouvoir d'achat" style="width:100%;padding:10px;border:1px solid var(--ligne);border-radius:10px;font-size:16px;font-family:inherit"></textarea></label>`:""}
      <label style="grid-column:1/-1">Votre prénom ou nom de militant (facultatif, enregistré dans le Google Sheet)<input type="text" id="sMil" autocomplete="off"></label>
      </div>
      <p style="margin-top:10px"><button class="btn plein" id="sOk">Enregistrer</button> <button class="btn" onclick="window.print()">Imprimer</button>${SYNC.url?"":` <span style="font-size:12px;color:var(--encre3)">Enregistré sur ce téléphone</span>`}</p>
      <p style="font-size:12.5px;color:var(--encre3)">Jamais de nom d'habitant ni d'opinion sur une personne.</p>
-     ${(suivi[i]||[]).length?`<h4 style="margin-top:12px">Déjà enregistré sur ce bureau</h4>${[...suivi[i]].map((x,k)=>[x,k]).sort((a,c)=>String(c[0].date).localeCompare(String(a[0].date))).map(([x,k])=>`<div class="ligne" style="justify-content:space-between;align-items:center"><span>${dateFr(x.date)} · ${x.type||"?"}${x.tract?` · ${esc(x.tract)}`:""} · ${x.portes?`${x.portes} portes${x.ouvertes?`, ${x.ouvertes} ouvertes`:""}${x.tracts?`, ${x.tracts} tracts`:""}`:x.tracts?`${x.tracts} tracts`:`${x.panneaux||0} panneaux`}${x.lieu?` · ${esc(x.lieu)}`:""}${x.numeros?` · n° ${esc(x.numeros)}`:""}${x.militant?` · par ${esc(x.militant)}`:""}${x.commentaire?`<br><span style="color:var(--encre3);font-size:13px">${esc(x.commentaire)}</span>`:""}</span><button class="btn lien" data-suppr="${k}" style="padding:2px 0">Retirer</button></div>`).join("")}`:""}</div>`;
+     ${(suivi[i]||[]).length?`<h4 style="margin-top:12px">Déjà enregistré sur ce bureau</h4>${[...suivi[i]].map((x,k)=>[x,k]).sort((a,c)=>String(c[0].date).localeCompare(String(a[0].date))).map(([x,k])=>`<div class="ligne" style="justify-content:space-between;align-items:center"><span>${dateFr(x.date)} · ${x.type||"?"}${x.tract?` · ${esc(x.tract)}`:""} · ${x.portes?`${x.portes} portes${x.ouvertes?`, ${x.ouvertes} ouvertes`:""}${x.tracts?`, ${x.tracts} tracts`:""}`:x.tracts?`${x.tracts} tracts`:`${x.panneaux||0} panneaux`}${x.lieu?` · ${esc(x.lieu)}`:""}${x.numeros?` · n° ${esc(x.numeros)}`:""}${x.militant?` · par ${esc(x.militant)}`:""}${x.commentaire?`<br><span style="color:var(--encre3);font-size:13px">${esc(x.commentaire)}</span>`:""}${x.objections?`<br><span style="color:var(--encre3);font-size:13px">Objections : ${esc(x.objections)}</span>`:""}${x.argument?`<br><span style="color:var(--encre3);font-size:13px">Argument : ${esc(x.argument)}</span>`:""}</span><button class="btn lien" data-suppr="${k}" style="padding:2px 0">Retirer</button></div>`).join("")}`:""}</div>`;
   $("#ret").onclick=fermer; lierImm(i); majHauteurs();
   $$("#detail [data-suppr]").forEach(x=>x.onclick=()=>{ if(confirm("Retirer cette sortie ?")){ suivi[i].splice(+x.dataset.suppr,1); SV("bb2_suivi",suivi); rendreDetail(); } });
   $$("#detail .rues input").forEach(x=>x.onchange=()=>{coches[x.dataset.k]=x.checked;SV("t_rues",coches);
@@ -1433,7 +1438,7 @@ function rendreDetail(){if(immSel&&IMM[immSel]&&canal==="pap"){rendreImm();retur
     if(canal==="tract"&&!tr){toast("Indiquez le nombre de tracts donnés");return;}
     if(canal==="affichage"&&!pa){toast("Cochez les panneaux collés, ou indiquez un nombre de panneaux non recensés");return;}
     const dt=$("#sD").value; if(!dt){toast("Indiquez la date");return;} if(dt>aujourdhui()){toast("La date ne peut pas être dans le futur");return;}
-    const ligne={bureau:i,id:rid(),date:dt,type:canal==="pap"?"porte-à-porte":canal==="tract"?"tractage":"affichage",tract:($("#sNat")?.value||"").trim(),theme:canal==="affichage"?"":tract,lieu:($("#sL")?.value||"").trim(),portes:p,ouvertes:o,tracts:tr,panneaux:pa,militant:($("#sMil")?.value||"").trim(),numeros:($("#sNum")?.value||"").trim(),commentaire:($("#sCom")?.value||"").trim()};
+    const ligne={bureau:i,id:rid(),date:dt,type:canal==="pap"?"porte-à-porte":canal==="tract"?"tractage":"affichage",tract:($("#sNat")?.value||"").trim(),theme:canal==="affichage"?"":tract,lieu:($("#sL")?.value||"").trim(),portes:p,ouvertes:o,tracts:tr,panneaux:pa,militant:($("#sMil")?.value||"").trim(),numeros:($("#sNum")?.value||"").trim(),commentaire:($("#sCom")?.value||"").trim(),objections:(($("#sObj")?.value)||"").trim().slice(0,300),argument:(($("#sArg")?.value)||"").trim().slice(0,300)};
     (suivi[i]=suivi[i]||[]).push({...ligne,militant:""}); SV("bb2_suivi",suivi);
     if(canal==="affichage"){ const off=panneaux.filter(p=>p.officiel); let nc=0;
       $$("#detail [data-col]:checked").forEach(x=>{ const p=off.find(q=>q.adresse===x.dataset.col); if(!p) return; const bloc=x.closest(".col-p");
@@ -1635,7 +1640,7 @@ function ouvrir(i){sel=i;immSel=null;classer();styler();rendreDetail();$("#liste
 function cadrer(){ const s=carte.getSize(); if(!(s.x>0&&s.y>0)) return; sel ? carte.fitBounds(couches[sel].getBounds(),{maxZoom:16,padding:[30,30]}) : carte.fitBounds(coucheBV.getBounds(),{padding:[8,8]}); }
 function fermer(){sel=null;$("#detail").style.display="none";$("#liste").style.display="block";styler();}
 function montrer(o){$$(".onglets button").forEach(b=>b.setAttribute("aria-selected",b.dataset.o===o));$("#zoneCarte").classList.toggle("on",o==="carte");$("#zoneListe").classList.toggle("off",o==="carte");if(o==="carte")setTimeout(()=>{ajusterCarte();carte.invalidateSize();cadrer();},50);}
-function ajusterCarte(){ if(window.innerWidth>820) return; const c=$("#carte"), h=(window.visualViewport?window.visualViewport.height:window.innerHeight)-c.getBoundingClientRect().top-6; if(h>250) c.style.height=h+"px"; }
+function ajusterCarte(){ if(window.innerWidth>820) return; const c=$("#carte"), h=(window.visualViewport?window.visualViewport.height:window.innerHeight)-c.getBoundingClientRect().top-6; if(h>180) c.style.height=h+"px"; const lg=document.querySelector(".legende"); if(lg) lg.style.maxHeight=Math.max(120,c.clientHeight-70)+"px"; }
 $$(".onglets button").forEach(b=>b.onclick=()=>montrer(b.dataset.o));
 
 // ---------- recherche et géolocalisation
