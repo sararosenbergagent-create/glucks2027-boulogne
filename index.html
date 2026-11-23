@@ -983,7 +983,14 @@ $("#tract").value=tract;
 // ---------- stock de tracts par thème (onglet « Stocks » du Sheet, Apps Script v5)
 const STOCK_DEF={meeting:"?",pouvoir_achat:"?"};
 let STOCKS=LS("bb2_stocks",null);
-function majStockMenu(){ const enAttente={}; SYNC.file.forEach(l=>{ if(l.theme) enAttente[l.theme]=(enAttente[l.theme]||0)+(+l.tracts||0); });
+const TOUS_THEMES=[...document.querySelectorAll("#tract option")].map(o=>o.cloneNode(true));
+function filtrerThemes(){/*themes-du-sheet*/ const s=$("#tract"); if(!STOCKS||!Object.keys(STOCKS).length) return;
+  const garde=TOUS_THEMES.filter(o=>STOCKS[o.value]); if(!garde.length) return;
+  const voulu=garde.map(o=>o.value).join("|"), actuel=[...s.options].map(o=>o.value).join("|");
+  if(voulu!==actuel){ s.innerHTML=""; garde.forEach(o=>s.appendChild(o.cloneNode(true))); }
+  if(!garde.some(o=>o.value===tract)){ tract=garde[0].value; SV("t_tract",tract); s.value=tract; setTimeout(()=>{ if(typeof maj==="function") maj(); },0); }
+  else s.value=tract; }
+function majStockMenu(){ filtrerThemes(); const enAttente={}; SYNC.file.forEach(l=>{ if(l.theme) enAttente[l.theme]=(enAttente[l.theme]||0)+(+l.tracts||0); });
   // Règle de Sara : un thème absent de l'onglet « Stocks » (ou marqué « --- ») n'affiche aucune indication de stock.
   [...$("#tract").options].forEach(o=>{ if(!o.dataset.lib) o.dataset.lib=o.textContent;
     let r=STOCKS?(STOCKS[o.value]?String(STOCKS[o.value].reste).trim():""):(STOCK_DEF[o.value]||"");
