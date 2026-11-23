@@ -987,7 +987,18 @@ function majStockMenu(){ const enAttente={}; SYNC.file.forEach(l=>{ if(l.theme) 
   [...$("#tract").options].forEach(o=>{ if(!o.dataset.lib) o.dataset.lib=o.textContent;
     let r=STOCKS&&STOCKS[o.value]?String(STOCKS[o.value].reste):(STOCK_DEF[o.value]||"---");
     if(r!==""&&!isNaN(Number(r))) r=(Number(r)-(enAttente[o.value]||0)).toLocaleString("fr-FR");
-    o.textContent=`${o.dataset.lib} · stock : ${r}`; }); }
+    o.dataset.stk=`(stock : ${r})`; });
+  // Stock aligné à droite (demande de Sara) : un menu natif ne sait pas aligner une partie du texte, on complète avec des
+  // espaces insécables mesurés dans la police du menu (espace fin puis espace ultra-fin pour l'ajustement).
+  const s=$("#tract"), cs=getComputedStyle(s), cv=(majStockMenu.cv=majStockMenu.cv||document.createElement("canvas")).getContext("2d");
+  cv.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`; const W=x=>cv.measureText(x).width;
+  const opts=[...s.options], cible=Math.max(...opts.map(o=>W(o.dataset.lib)+W(o.dataset.stk)))+W("\u00a0\u00a0\u00a0\u00a0");
+  const wN=W("\u00a0")||4, wF=W("\u2009")||2, wH=W("\u200a")||1;
+  opts.forEach(o=>{ let reste=cible-W(o.dataset.lib)-W(o.dataset.stk), p="";
+    const n=Math.floor(reste/wN); p+="\u00a0".repeat(Math.max(0,n)); reste-=n*wN;
+    const f=Math.floor(reste/wF); p+="\u2009".repeat(Math.max(0,f)); reste-=f*wF;
+    p+="\u200a".repeat(Math.max(0,Math.round(reste/wH)));
+    o.textContent=o.dataset.lib+p+o.dataset.stk; }); }
 async function chargerStocks(){ if(!SYNC.url) return;
   try{ const r=await fetch(SYNC.url+(SYNC.url.includes("?")?"&":"?")+"stocks=1"); const j=await r.json();
     if(j&&j.stocks&&typeof j.stocks==="object"){ STOCKS=j.stocks; SV("bb2_stocks",STOCKS); majStockMenu(); } }catch(e){} }
