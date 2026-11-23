@@ -1267,7 +1267,7 @@ function ouvrirReleve(adr){ const off=panneaux.filter(p=>p.officiel); const p=ad
 function itemCollage(p){ const r=dernierReleve(p), vus=new Set(r?candsDe(r).map(x=>x.toLowerCase()):[]), pr=prioPan(p);
   const autres=r?candsDe(r).filter(x=>!CANDIDATS.some(c=>c.toLowerCase()===x.toLowerCase())).join(", "):"";
   return `<div class="col-p" data-x="${p.x}" data-y="${p.y}"><label class="col-l"><input type="checkbox" data-col="${esc(p.adresse)}"><span>${esc(p.adresse)}<small><span class="d"></span>Secteur du bureau ${+p.bv} · <span style="color:${pr[0]<=2?"#B3261E":"inherit"}">${pr[1]}</span></small></span></label>
-   <div class="col-c" hidden><p>Encore visibles sur ce panneau ? Décochez ceux que vous venez de recouvrir.</p>
+   <div class="col-c" hidden><p>Encore visibles sur ce panneau ? Cochez ou décochez les candidats visibles / recouverts.</p>
     ${CANDIDATS.length?`<div class="rel-cands">${CANDIDATS.map(c=>`<label><input type="checkbox" value="${esc(c)}"${vus.has(c.toLowerCase())?" checked":""}>${esc(c)}</label>`).join("")}</div>`:""}
     <input type="text" class="col-autre" autocomplete="off" placeholder="Autre candidat encore visible" value="${esc(autres)}"></div></div>`; }
 function ouvrirCollage(pre){ const off=panneaux.filter(p=>p.officiel).sort((a,b)=>prioPan(a)[0]-prioPan(b)[0]||a.adresse.localeCompare(b.adresse));
@@ -1320,7 +1320,7 @@ function ouvrirChoixPanneau(p){ const pr=prioPan(p);
   $("#chCol").onclick=()=>ouvrirCollage(p.adresse); $("#chRel").onclick=()=>ouvrirReleve(p.adresse);
   $("#chCarte").onclick=()=>{ fermerFeuille(); if(window.innerWidth<=820)montrer("carte"); setTimeout(()=>{carte.invalidateSize();carte.setView([p.y,p.x],18);},60); }; }
 document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-collage]"); if(b) ouvrirCollage(); });
-document.addEventListener("change",e=>{ const x=e.target; if(!x.matches||!x.matches("#detail [data-col]")) return;
+document.addEventListener("change",e=>{ const x=e.target; /*collage-depli*/if(!x.matches||!x.matches("#detail [data-col], #feuille [data-col]")) return;
   const c=x.closest(".col-p").querySelector(".col-c"); if(c) c.hidden=!x.checked; });
 function colListe(i){ const off=panneaux.filter(p=>p.officiel); if(!off.length) return "";
   const c=centreBV(i), d=p=>Math.hypot((p.x-c.lng)*73300,(p.y-c.lat)*111320);
@@ -1329,7 +1329,7 @@ function colListe(i){ const off=panneaux.filter(p=>p.officiel); if(!off.length) 
   const item=p=>{ const r=dernierReleve(p), vus=new Set(r?candsDe(r).map(x=>x.toLowerCase()):[]);
     const autres=r?candsDe(r).filter(x=>!CANDIDATS.some(c=>c.toLowerCase()===x.toLowerCase())).join(", "):"";
     return `<div class="col-p"><label class="col-l"><input type="checkbox" data-col="${esc(p.adresse)}"><span>${esc(p.adresse)}<small>${p.bv===i?"Dans ce secteur":`Secteur du bureau ${+p.bv}`}${r?` · dernier relevé le ${dateFr(r.date)}`:" · jamais relevé"}</small></span></label>
-     <div class="col-c" hidden><p>Encore visibles sur ce panneau ? Décochez ceux que vous venez de recouvrir.</p>
+     <div class="col-c" hidden><p>Encore visibles sur ce panneau ? Cochez ou décochez les candidats visibles / recouverts.</p>
       ${CANDIDATS.length?`<div class="rel-cands">${CANDIDATS.map(c=>`<label><input type="checkbox" value="${esc(c)}"${vus.has(c.toLowerCase())?" checked":""}>${esc(c)}</label>`).join("")}</div>`:""}
       <input type="text" class="col-autre" autocomplete="off" placeholder="Autre candidat encore visible" value="${esc(autres)}"></div></div>`; };
   return tete.map(item).join("")+(reste.length?`<details class="col-autres"><summary>Autres panneaux (${reste.length})</summary>${reste.map(item).join("")}</details>`:""); }
