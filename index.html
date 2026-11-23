@@ -975,8 +975,8 @@ let suivi=LS("bb2_suivi",{}), mesures=LS("bb2_mesures",[]), coches=LS("t_rues",{
 let IMM=LS("bb2_imm",{}), immSel=null, dernAdr=null;
 let RELEVES=LS("bb2_releves",[]), REL_FILE=LS("bb2_rel_file",[]), CANDIDATS=LS("bb2_candidats",[]), SRV_REL=LS("bb2_srv_rel",false); // fiches immeuble (étape 1, sur ce téléphone)
 // Google Sheet : coller l'URL du script déployé. Vide = enregistrement local seul.
-if(["https://script.google.com/macros/s/AKfycbwzqzpigmYjzrSkybG2S7-q_NpRgLumr4etDLrJBAAJyQ0-lFMsV8VusiyLHU2UbyRh/exec","https://script.google.com/macros/s/AKfycbwsqpXN_7_efGZAa_gFmU74CBsIAy-ksws6I7RPPa7OCIEXTiNV6c_J6cuRm03TwIjk/exec"].includes(LS("bb2_sync",null))) SV("bb2_sync","https://script.google.com/macros/s/AKfycbww5JTVQ7aJq4dN9PAbQvCwMoQa0XgFdETzGo6I2p7oaXkCer8Hsv-ZTWzTbMk3VpK4/exec");
-const SYNC={url:LS("bb2_sync","https://script.google.com/macros/s/AKfycbww5JTVQ7aJq4dN9PAbQvCwMoQa0XgFdETzGo6I2p7oaXkCer8Hsv-ZTWzTbMk3VpK4/exec"),file:LS("bb2_file",[])};
+if(["https://script.google.com/macros/s/AKfycbwzqzpigmYjzrSkybG2S7-q_NpRgLumr4etDLrJBAAJyQ0-lFMsV8VusiyLHU2UbyRh/exec","https://script.google.com/macros/s/AKfycbwsqpXN_7_efGZAa_gFmU74CBsIAy-ksws6I7RPPa7OCIEXTiNV6c_J6cuRm03TwIjk/exec","https://script.google.com/macros/s/AKfycbww5JTVQ7aJq4dN9PAbQvCwMoQa0XgFdETzGo6I2p7oaXkCer8Hsv-ZTWzTbMk3VpK4/exec"].includes(LS("bb2_sync",null))) SV("bb2_sync","https://script.google.com/macros/s/AKfycbx0EZSmSK8b2V2IiQLS77wsRWS7z-RCZFDgmgadqHNSG6tKNBX1d5NJ34YtF5EYBCps/exec");
+const SYNC={url:LS("bb2_sync","https://script.google.com/macros/s/AKfycbx0EZSmSK8b2V2IiQLS77wsRWS7z-RCZFDgmgadqHNSG6tKNBX1d5NJ34YtF5EYBCps/exec"),file:LS("bb2_file",[])};
 let panneaux=(()=>{const loc=LS("bb2_panneaux",null); const off=(D.panneaux||[]).map((p,k)=>({x:p.x,y:p.y,bv:p.bv,adresse:p.adresse,officiel:true,id:"off"+k,av:!!p.a_verifier,proches:p.bv_proches||[],methode:p.methode||""}));
   if(!loc) return off;
   const vus=new Set(off.map(p=>p.adresse)); return off.concat(loc.filter(p=>!vus.has(p.adresse)));})();
