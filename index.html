@@ -1012,9 +1012,12 @@ async function viderFile(){ if(!SYNC.url||!SYNC.file.length) return; const reste
   if(!reste.length) toast("Tout est envoyé sur le Google Sheet"); }
 async function chargerSheet(){ if(!SYNC.url) return;
   try{ const r=await fetch(SYNC.url+(SYNC.url.includes("?")?"&":"?")+"lecture=1"); const j=await r.json(); if(!Array.isArray(j)) return; let n=0;
-    j.forEach(x=>{ const bv=String(x.bureau).padStart(4,"0"); if(!B[bv]) return; suivi[bv]=suivi[bv]||[];
-      if(!suivi[bv].some(y=>y.id===x.id)){ suivi[bv].push({id:x.id,date:x.date,type:x.type,portes:+x.portes||0,ouvertes:+x.ouvertes||0,tracts:+x.tracts||0,note:x.tract||"",tract:x.tract||"",lieu:x.lieu||"",numeros:x.numeros||"",commentaire:x.commentaire||"",militant:x.militant||"",theme:x.theme||""}); n++; } });
-    if(n){ SV("bb2_suivi",suivi); toast(n+" enregistrements récupérés"); tout(); }
+    const avant=Object.values(suivi).flat().length, neuf={}, vus=new Set();
+    j.forEach(x=>{ const bv=String(x.bureau).padStart(4,"0"); if(!B[bv]) return; vus.add(String(x.id));
+      (neuf[bv]=neuf[bv]||[]).push({id:x.id,date:x.date,type:x.type,portes:+x.portes||0,ouvertes:+x.ouvertes||0,tracts:+x.tracts||0,panneaux:+x.panneaux||0,note:x.tract||"",tract:x.tract||"",lieu:x.lieu||"",numeros:x.numeros||"",commentaire:x.commentaire||"",militant:"",theme:x.theme||""}); });
+    SYNC.file.forEach(l=>{ const bv=String(l.bureau).padStart(4,"0"); if(!B[bv]||vus.has(String(l.id))) return; (neuf[bv]=neuf[bv]||[]).push({...l,bureau:bv,militant:""}); });
+    suivi=neuf; SV("bb2_suivi",suivi); n=Object.values(suivi).flat().length;
+    if(n!==avant){ tout(); if(canal==="affichage") rendreListe(); majEpingles(); }
   }catch(e){} }
 $("#tract").value=tract;
 // ---------- stock de tracts par thème (onglet « Stocks » du Sheet, Apps Script v5)
@@ -1223,7 +1226,7 @@ async function chargerReleves(){ if(!SYNC.url) return;
   if(!SRV_REL) return; await viderReleves();
   try{ const r=await fetch(SYNC.url+(SYNC.url.includes("?")?"&":"?")+"affichage=1"); const j=await r.json();
     if(Array.isArray(j.candidats)){ CANDIDATS=j.candidats; SV("bb2_candidats",CANDIDATS); }
-    if(Array.isArray(j.releves)){ const ids=new Set(RELEVES.map(x=>x.id)); j.releves.forEach(x=>{ if(!ids.has(x.id)){ RELEVES.push(x); ids.add(x.id); } }); SV("bb2_releves",RELEVES); }
+    if(Array.isArray(j.releves)){ /*sheet-fait-foi*/ const ids=new Set(j.releves.map(x=>x.id)); RELEVES=j.releves.concat(REL_FILE.filter(x=>!ids.has(x.id))); SV("bb2_releves",RELEVES); }
     if(canal==="affichage") rendreListe(); majEpingles();
   }catch(e){} }
 function ouvrirReleve(adr){ const off=panneaux.filter(p=>p.officiel); const p=adr?off.find(x=>x.adresse===adr):null;
