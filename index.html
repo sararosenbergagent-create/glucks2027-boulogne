@@ -1182,7 +1182,7 @@ const jourISO=()=>{const x=new Date();return new Date(x.getTime()-x.getTimezoneO
 function dernierReleve(p){let r=null; RELEVES.forEach(x=>{ if(x.panneau!==p.adresse) return;
   if(!r||String(x.date)>String(r.date)||(String(x.date)===String(r.date)&&(+x.ts||0)>(+r.ts||0))) r=x; }); return r;}
 function prioPan(p){ if(!p.officiel) return [5,"",null]; const r=dernierReleve(p);
-  if(!r) return [3,"À relever : jamais relevé",null];
+  if(!r) return [2,"À recoller : pas encore collé",null];
   if(r.notre_affiche==="recouverte") return [1,"À recoller : notre affiche recouverte",r];
   if(r.notre_affiche==="absente") return [2,"À recoller : notre affiche absente",r];
   const j=(Date.now()-new Date(String(r.date)+"T12:00:00").getTime())/864e5;
@@ -1245,7 +1245,7 @@ function rendreAffichage(o){
   $("#liste").innerHTML=`<div class="titre-liste"><b>Où afficher</b><span>${(D.panneaux||[]).length} recensés · ${poses} posés</span></div>
    <p style="margin:-4px 2px 12px;color:var(--encre2);font-size:13.5px">${(D.panneaux||[]).length} panneaux d'affichage libre recensés à Boulogne (annuaire absurdediffusion.eu, consulté le 20 novembre 2026). Vous pouvez en ajouter sur la carte, ou importer une liste complémentaire en CSV.</p>
    ${(()=>{const off=panneaux.filter(p=>p.officiel), cl=classementCands(), arec=off.filter(p=>prioPan(p)[0]<=2).length;
-     return `<div class="bloc-rel"><p class="rel-resume">${cl.n?`<b style="color:${arec?"#B3261E":"inherit"}">${arec} panneau${arec>1?"x":""} à recoller</b> · ${cl.n} panneau${cl.n>1?"x":""} relevé${cl.n>1?"s":""} sur ${off.length}`:"Aucun relevé pour l'instant."}</p>
+     return `<div class="bloc-rel"><p class="rel-resume"><b style="color:${arec?"#B3261E":"inherit"}">${arec} panneau${arec>1?"x":""} à recoller</b> · ${cl.n?`${cl.n} panneau${cl.n>1?"x":""} relevé${cl.n>1?"s":""} sur ${off.length}`:"aucun relevé pour l'instant"}</p>
      ${cl.n?`<details class="rel-det"><summary>Candidats les plus visibles</summary>
        <div class="rel-l"><span>Notre affiche, visible</span><b>${cl.nous} panneau${cl.nous>1?"x":""}</b></div>
        ${cl.l.map(c=>`<div class="rel-l"><span>${esc(c.nom)}</span><b>${c.n} panneau${c.n>1?"x":""}</b></div>`).join("")}
