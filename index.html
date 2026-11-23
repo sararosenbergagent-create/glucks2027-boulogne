@@ -814,6 +814,19 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
 #feuille .cand small{display:block;color:var(--encre3);margin-top:2px}
 #feuille .msg{font-size:13.5px;color:var(--encre2);margin:8px 0 0}
 @media print{header,.sortie,.onglets,#zoneCarte,.pasimpr,.comite{display:none!important} main{display:block;height:auto} #detail{display:block!important}}
+.p-alerte{background:#fff;color:#B3261E;border:1.5px solid #B3261E;font-weight:600}
+.bloc-rel{margin:0 0 14px}.bloc-rel .rel-resume{margin:8px 2px 0;font-size:14px;color:var(--encre2)}
+.rel-det{margin-top:8px;border:1px solid var(--ligne);border-radius:12px;padding:8px 12px;background:#fff}
+.rel-det summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
+.rel-l{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--ligne);font-size:14.5px}
+.rel-choix{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 4px}
+.rel-choix button{min-height:48px;border:1.5px solid var(--ligne);border-radius:12px;background:#fff;font-weight:600;font-size:15px;cursor:pointer}
+.rel-choix button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.rel-cands{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+#feuille .rel-cands label{display:inline-flex;width:auto;align-items:center;gap:8px;min-height:44px;padding:4px 14px;border:1.5px solid var(--ligne);border-radius:22px;background:#fff;font-size:15px;margin:0}
+#feuille .rel-cands input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:none}
+#feuille .rel-cands label:has(input:checked){border-color:var(--accent);background:#EEF2FB}
+#feuille h4{margin:14px 0 2px;font-size:15px}
 </style>
 </head>
 <body>
@@ -958,7 +971,8 @@ function carteOp(o,k){return `<div class="elec" style="border-left:3px solid var
 // ---------- état
 let canal=LS("t_canal","pap"), tract=LS("t_tract","general"), sel=null, ici=null;
 let suivi=LS("bb2_suivi",{}), mesures=LS("bb2_mesures",[]), coches=LS("t_rues",{});
-let IMM=LS("bb2_imm",{}), immSel=null, dernAdr=null; // fiches immeuble (étape 1, sur ce téléphone)
+let IMM=LS("bb2_imm",{}), immSel=null, dernAdr=null;
+let RELEVES=LS("bb2_releves",[]), REL_FILE=LS("bb2_rel_file",[]), CANDIDATS=LS("bb2_candidats",[]), SRV_REL=LS("bb2_srv_rel",false); // fiches immeuble (étape 1, sur ce téléphone)
 // Google Sheet : coller l'URL du script déployé. Vide = enregistrement local seul.
 if(["https://script.google.com/macros/s/AKfycbwzqzpigmYjzrSkybG2S7-q_NpRgLumr4etDLrJBAAJyQ0-lFMsV8VusiyLHU2UbyRh/exec","https://script.google.com/macros/s/AKfycbwsqpXN_7_efGZAa_gFmU74CBsIAy-ksws6I7RPPa7OCIEXTiNV6c_J6cuRm03TwIjk/exec"].includes(LS("bb2_sync",null))) SV("bb2_sync","https://script.google.com/macros/s/AKfycbww5JTVQ7aJq4dN9PAbQvCwMoQa0XgFdETzGo6I2p7oaXkCer8Hsv-ZTWzTbMk3VpK4/exec");
 const SYNC={url:LS("bb2_sync","https://script.google.com/macros/s/AKfycbww5JTVQ7aJq4dN9PAbQvCwMoQa0XgFdETzGo6I2p7oaXkCer8Hsv-ZTWzTbMk3VpK4/exec"),file:LS("bb2_file",[])};
@@ -1075,13 +1089,15 @@ function majEpingles(){
   if(canal==="pap") Object.values(IMM).filter(m=>!m.masque&&m.x&&m.y).forEach(m=>{const et=etatImm(m),pl=et==="Terminé";
     epingles.addLayer(L.marker([m.y,m.x],{icon:L.divIcon({className:"",iconSize:[16,16],iconAnchor:[8,8],html:`<div style='width:10px;height:10px;margin:3px;transform:rotate(45deg);background:${pl?"#0D0D0D":"#fff"};border:2px solid #0D0D0D;box-shadow:0 0 0 1px #fff'></div>`})})
       .bindTooltip(`<b>${nomImm(m)}</b><br>${pctImm(m)} % fait · bureau ${+m.bv}`,{direction:"top",offset:[0,-6]}).on("click",()=>ouvrirImm(m.id)));});
-  panneaux.forEach(p=>epingles.addLayer(L.marker([p.y,p.x],{icon:L.divIcon({className:"",iconSize:[13,13],iconAnchor:[6.5,6.5],html:"<div style='width:13px;height:13px;background:#6a1b9a;border:2px solid #fff;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.25)'></div>"})})
-    .bindTooltip(`<b>Panneau d'affichage</b><br>${esc(p.adresse||"")}<br>Bureau ${+p.bv}`,{direction:"top",offset:[0,-6]}).on("click",()=>ouvrir(p.bv))));
+  panneaux.forEach(p=>{const pr=prioPan(p), rc=pr[0]<=2;
+    epingles.addLayer(L.marker([p.y,p.x],{icon:L.divIcon({className:"",iconSize:[13,13],iconAnchor:[6.5,6.5],html:`<div style='width:13px;height:13px;background:#6a1b9a;border:2px solid #fff;border-radius:3px;box-shadow:0 0 0 ${rc?"3px #C62828":"1px rgba(0,0,0,.25)"}'></div>`})})
+    .bindTooltip(`<b>Panneau d'affichage</b><br>${esc(p.adresse||"")}<br>Bureau ${+p.bv}${pr[1]?`<br>${pr[1]}`:""}`,{direction:"top",offset:[0,-6]}).on("click",()=>{ if(canal==="affichage"&&p.officiel) ouvrirReleve(p.adresse); else ouvrir(p.bv); }));});
 }
 const leg=L.control({position:"bottomleft"}); leg.onAdd=()=>{const d=L.DomUtil.create("details","legende"); if(window.innerWidth>820) d.open=true;
   L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
   d.innerHTML=`<summary>Légende</summary>`+`<div class="sep" style="margin-top:0;padding-top:0;border:0">Du plus utile au moins utile</div>`+Object.entries(STAT).map(([k,s],n)=>`<div><b style="background:${s[2]}${k==="stop"?";border:1px dashed #8C8C8C;box-sizing:border-box":""}"></b>${n+1}. ${s[0]}${k==="stop"?` <span style="color:var(--encre2)">(vote LFI ou Zemmour/RN parmi les plus forts)</span>`:""}</div>`).join("")
    +`<div style="margin-top:4px"><q style="background:#6a1b9a"></q>Panneau d'affichage libre</div>`
+   +`<div><q style="background:#6a1b9a;box-shadow:0 0 0 2px #C62828"></q>Panneau à recoller (notre affiche recouverte ou absente)</div>`
    +`<div class="sep">Épingles de terrain</div>`
    +`<div><s style="background:#d55e00"></s>Sortie porte-à-porte</div>`
    +`<div><s style="background:#0072b2"></s>Sortie tractage</div>`
@@ -1160,6 +1176,66 @@ function lierSync(){
   const n=$("#syncNow"); if(n) n.onclick=()=>viderFile();
   $("#syncGet").onclick=()=>chargerSheet();
 }
+/*releves-affichage*/
+const jourISO=()=>{const x=new Date();return new Date(x.getTime()-x.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
+function dernierReleve(p){let r=null; RELEVES.forEach(x=>{ if(x.panneau!==p.adresse) return;
+  if(!r||String(x.date)>String(r.date)||(String(x.date)===String(r.date)&&(+x.ts||0)>(+r.ts||0))) r=x; }); return r;}
+function prioPan(p){ if(!p.officiel) return [5,"",null]; const r=dernierReleve(p);
+  if(!r) return [3,"À relever : jamais relevé",null];
+  if(r.notre_affiche==="recouverte") return [1,"À recoller : notre affiche recouverte",r];
+  if(r.notre_affiche==="absente") return [2,"À recoller : notre affiche absente",r];
+  const j=(Date.now()-new Date(String(r.date)+"T12:00:00").getTime())/864e5;
+  if(j>7) return [3,`À relever : dernier relevé le ${dateFr(r.date)}`,r];
+  return [4,`Relevé le ${dateFr(r.date)} : notre affiche visible`,r]; }
+function candsDe(r){ return String(r.candidats||"").split(";").concat(String(r.autre||"").split(/[;,]/)).map(s=>s.trim()).filter(Boolean); }
+function classementCands(){ const c={}; let n=0, nous=0;
+  panneaux.filter(p=>p.officiel).forEach(p=>{ const r=dernierReleve(p); if(!r) return; n++; if(r.notre_affiche==="visible") nous++;
+    const vus=new Set(); candsDe(r).forEach(x=>{ const k=x.toLowerCase(); if(vus.has(k)) return; vus.add(k); c[k]=c[k]||{nom:x,n:0}; c[k].n++; }); });
+  return {n, nous, l:Object.values(c).sort((a,b)=>b.n-a.n||a.nom.localeCompare(b.nom))}; }
+async function viderReleves(){ if(!SYNC.url||!SRV_REL||!REL_FILE.length) return; const reste=[];
+  for(const l of REL_FILE){ (await envoyer(Object.assign({action:"releve"},l)))||reste.push(l); }
+  REL_FILE=reste; SV("bb2_rel_file",reste); }
+async function chargerReleves(){ if(!SYNC.url) return;
+  try{ const r=await fetch(SYNC.url+(SYNC.url.includes("?")?"&":"?")+"config=1"); const j=await r.json(); SRV_REL=+j.version>=8; SV("bb2_srv_rel",SRV_REL); }catch(e){ return; }
+  if(!SRV_REL) return; await viderReleves();
+  try{ const r=await fetch(SYNC.url+(SYNC.url.includes("?")?"&":"?")+"affichage=1"); const j=await r.json();
+    if(Array.isArray(j.candidats)){ CANDIDATS=j.candidats; SV("bb2_candidats",CANDIDATS); }
+    if(Array.isArray(j.releves)){ const ids=new Set(RELEVES.map(x=>x.id)); j.releves.forEach(x=>{ if(!ids.has(x.id)){ RELEVES.push(x); ids.add(x.id); } }); SV("bb2_releves",RELEVES); }
+    if(canal==="affichage") rendreListe(); majEpingles();
+  }catch(e){} }
+function ouvrirReleve(adr){ const off=panneaux.filter(p=>p.officiel); const p=adr?off.find(x=>x.adresse===adr):null;
+  if(!p){ // étape 1 : choisir le panneau (le plus urgent d'abord, ou le plus proche)
+    const liste=(pos)=>{ const l=off.map(x=>[x,pos?Math.hypot((x.x-pos[1])*73300,(x.y-pos[0])*111320):null]);
+      l.sort((a,b)=>pos?a[1]-b[1]:(prioPan(a[0])[0]-prioPan(b[0])[0]||a[0].adresse.localeCompare(b[0].adresse)));
+      return l.map(([x,d])=>{const pr=prioPan(x); return `<button type="button" class="cand" data-adr="${esc(x.adresse)}"><b>${esc(x.adresse)}</b><small>${d!=null?`à ${Math.round(d)} m · `:""}<span class="pastille ${pr[0]<=2?"p-alerte":"p-sec"}" style="font-size:11px;padding:1px 7px">${pr[1]}</span></small></button>`;}).join(""); };
+    FEU.innerHTML=`<div class="panneau">${enteteFeuille("Je signale un affichage")}
+     <p style="margin:10px 0 4px"><button class="btn" type="button" id="relGeo" style="width:100%">Panneaux autour de moi</button></p>
+     <p style="margin:8px 0 4px;color:var(--encre2);font-size:14px">Choisissez le panneau :</p><div id="relListe">${liste(null)}</div></div>`;
+    FEU.classList.add("on"); $("#feuX").onclick=fermerFeuille;
+    const lier=()=>$$("#relListe .cand").forEach(c=>c.onclick=()=>ouvrirReleve(c.dataset.adr)); lier();
+    $("#relGeo").onclick=()=>{ if(!navigator.geolocation){toast("Position indisponible");return;}
+      navigator.geolocation.getCurrentPosition(g=>{ $("#relListe").innerHTML=liste([g.coords.latitude,g.coords.longitude]); lier(); },()=>toast("Position refusée ou indisponible"),{enableHighAccuracy:true,timeout:10000}); };
+    return; }
+  const pr=prioPan(p), der=pr[2], deja=new Set(der?candsDe(der).map(x=>x.toLowerCase()):[]);
+  FEU.innerHTML=`<div class="panneau">${enteteFeuille("Je signale un affichage")}
+   <p style="margin:10px 0 0"><b>${esc(p.adresse)}</b><br><button class="btn lien" type="button" id="relChg">Changer de panneau</button></p>
+   ${der?`<p style="margin:2px 0 0;font-size:13px;color:var(--encre3)">Dernier relevé le ${dateFr(der.date)} : ${esc(candsDe(der).join(", ")||"aucun candidat noté")}</p>`:""}
+   <h4>Notre affiche est</h4><div class="rel-choix">${["visible","recouverte","absente"].map(v=>`<button type="button" data-na="${v}">${v[0].toUpperCase()+v.slice(1)}</button>`).join("")}</div>
+   <h4>Autres candidats visibles sur le panneau</h4>
+   ${CANDIDATS.length?`<div class="rel-cands">${CANDIDATS.map((c,k)=>`<label><input type="checkbox" value="${esc(c)}">${esc(c)}</label>`).join("")}</div>`:`<p style="font-size:13.5px;color:var(--encre2)">La liste des candidats n'est pas encore remplie (onglet « Candidats » du Google Sheet). Utilisez « Autre ».</p>`}
+   <label>Autre (si absent de la liste)<input id="relAutre" type="text" autocomplete="off" placeholder="nom du candidat ou de la liste"></label>
+   <label>Date du relevé<input id="relDate" type="date" value="${jourISO()}" max="${jourISO()}"></label>
+   <p style="margin-top:14px"><button class="btn plein gros" type="button" id="relOk" style="width:100%">Enregistrer le relevé</button></p>
+   <p style="font-size:12.5px;color:var(--encre3)">Seulement ce qui est affiché. Jamais de nom de personne.</p></div>`;
+  FEU.classList.add("on"); $("#feuX").onclick=fermerFeuille; $("#relChg").onclick=()=>ouvrirReleve();
+  let na=""; $$("#feuille .rel-choix button").forEach(b=>b.onclick=()=>{ na=b.dataset.na; $$("#feuille .rel-choix button").forEach(x=>x.classList.toggle("on",x===b)); });
+  $("#relOk").onclick=()=>{ if(!na){ toast("Indiquez d'abord l'état de notre affiche"); return; }
+    const l={id:rid(),date:$("#relDate").value||jourISO(),panneau:p.adresse,bureau:p.bv||"",notre_affiche:na,
+      candidats:$$("#feuille .rel-cands input:checked").map(i=>i.value).join("; "),autre:($("#relAutre").value||"").trim().slice(0,120),ts:Date.now()};
+    RELEVES.push(l); SV("bb2_releves",RELEVES); REL_FILE.push(l); SV("bb2_rel_file",REL_FILE); fermerFeuille();
+    toast(SYNC.url&&SRV_REL?"Relevé enregistré":"Relevé gardé sur ce téléphone, il partira dès que possible");
+    viderReleves(); rendreListe(); majEpingles(); };
+}
 function rendreAffichage(o){
   const prof=b=>`PS-PP 2024 ${fr(b.PP_2024_euro_t1,1)} % · Macron 2022 ${fr(b.centre_2022_pres_t1,1)} % · droite ${fr(b.droite_2024_euro_t1,1)} % · écolos 24 ${fr(b.eco_2024_euro_t1,1)} %`;
   const ids=o.filter(i=>B[i]._statut!=="sec").slice(0,18);
@@ -1167,14 +1243,23 @@ function rendreAffichage(o){
   const poses=Object.values(suivi).flat().filter(x=>x.type==="affichage").reduce((s,x)=>s+(+x.panneaux||0),0);
   $("#liste").innerHTML=`<div class="titre-liste"><b>Où afficher</b><span>${(D.panneaux||[]).length} recensés · ${poses} posés</span></div>
    <p style="margin:-4px 2px 12px;color:var(--encre2);font-size:13.5px">${(D.panneaux||[]).length} panneaux d'affichage libre recensés à Boulogne (annuaire absurdediffusion.eu, consulté le 20 novembre 2026). Vous pouvez en ajouter sur la carte, ou importer une liste complémentaire en CSV.</p>
-   <p><button class="btn plein" id="btnPan">${modePanneau?"Cliquez sur la carte pour placer":"Ajouter des panneaux sur la carte"}</button> <label class="btn" for="impPan">Importer (CSV)</label><input type="file" id="impPan" accept=".csv" hidden></p>
+   ${(()=>{const off=panneaux.filter(p=>p.officiel), cl=classementCands(), arec=off.filter(p=>prioPan(p)[0]<=2).length;
+     return `<div class="bloc-rel"><button class="btn plein gros" type="button" id="btnRel" style="width:100%">Je signale un affichage</button>
+     <p class="rel-resume">${cl.n?`<b style="color:${arec?"#B3261E":"inherit"}">${arec} panneau${arec>1?"x":""} à recoller</b> · ${cl.n} panneau${cl.n>1?"x":""} relevé${cl.n>1?"s":""} sur ${off.length}`:"Aucun relevé pour l'instant."}</p>
+     ${cl.n?`<details class="rel-det"><summary>Candidats les plus visibles</summary>
+       <div class="rel-l"><span>Notre affiche, visible</span><b>${cl.nous} panneau${cl.nous>1?"x":""}</b></div>
+       ${cl.l.map(c=>`<div class="rel-l"><span>${esc(c.nom)}</span><b>${c.n} panneau${c.n>1?"x":""}</b></div>`).join("")}
+       <p style="font-size:12.5px;color:var(--encre3);margin:8px 0 2px">Dernier relevé de chaque panneau, sur les ${off.length} panneaux d'affichage libre recensés seulement. Ne compte ni l'affichage sauvage ni les panneaux officiels.</p></details>`:""}
+     ${SYNC.url&&!SRV_REL?`<p style="font-size:12.5px;color:var(--encre3)">Le Google Sheet n'est pas encore prêt pour les relevés : ils restent sur ce téléphone en attendant.</p>`:""}</div>`;})()}
+   <p><button class="btn" id="btnPan">${modePanneau?"Cliquez sur la carte pour placer":"Ajouter des panneaux sur la carte"}</button> <label class="btn" for="impPan">Importer (CSV)</label><input type="file" id="impPan" accept=".csv" hidden></p>
    <div class="titre-liste" style="margin-top:6px"><b>Les panneaux, un par un</b><span>${panneaux.length} sur la carte</span></div>
-   ${panneaux.map((p,k)=>{/*affichage-adresses*/const pr=(p.proches||[]).filter(Boolean);const sect=pr.length>1?`À la limite des bureaux ${pr.map(b=>+b).join(" et ")}`:`Secteur du bureau ${+p.bv||"hors Boulogne"}`;return `<div class="carte-bv" data-acarte="${k}" role="button" tabindex="0"><div class="haut"><div><h3>${esc(p.adresse)}</h3><div class="lieu">${sect}</div></div><span class="pastille p-sec">${!p.officiel?"ajouté":p.av?"à vérifier":"recensé"}</span></div><div class="ligne"><span>${p.officiel?(p.av?"Emplacement approximatif (l'annuaire ne donne pas de numéro exact). À confirmer sur place.":"Adresse exacte (annuaire absurdediffusion.eu)"):"Relevé par l'équipe, non officiel"}</span></div></div>`;}).join("")}
+   ${panneaux.map((p,k)=>[p,k]).sort((a,c)=>prioPan(a[0])[0]-prioPan(c[0])[0]).map(([p,k])=>{/*affichage-adresses*/const prR=prioPan(p);const pr=(p.proches||[]).filter(Boolean);const sect=pr.length>1?`À la limite des bureaux ${pr.map(b=>+b).join(" et ")}`:`Secteur du bureau ${+p.bv||"hors Boulogne"}`;return `<div class="carte-bv" data-acarte="${k}" role="button" tabindex="0"><div class="haut"><div><h3>${esc(p.adresse)}</h3><div class="lieu">${sect}</div></div><span class="pastille p-sec">${!p.officiel?"ajouté":p.av?"à vérifier":"recensé"}</span></div>${prR[1]?`<div class="ligne"><span class="pastille ${prR[0]<=2?"p-alerte":"p-sec"}" style="white-space:normal">${prR[1]}</span>${prR[2]&&candsDe(prR[2]).length?`<span style="font-size:13px;color:var(--encre2)"> ${esc(candsDe(prR[2]).join(", "))}</span>`:""}</div>`:""}<div class="ligne"><span>${p.officiel?(p.av?"Emplacement approximatif (l'annuaire ne donne pas de numéro exact). À confirmer sur place.":"Adresse exacte (annuaire absurdediffusion.eu)"):"Relevé par l'équipe, non officiel"}</span></div></div>`;}).join("")}
    <div class="titre-liste" style="margin-top:14px"><b>Bureaux qui ont un panneau</b><span>${Object.keys(parBv).filter(i=>B[i]).length} bureaux</span></div>
    <p style="margin:-4px 2px 10px;color:var(--encre2);font-size:13.5px">Les autres bureaux n'ont aucun panneau d'affichage libre recensé.</p>
   ${Object.keys(parBv).filter(i=>B[i]).sort((a,c)=>parBv[c]-parBv[a]||(+a)-(+c)).map(i=>{const b=B[i];return `<div class="carte-bv" data-bv="${i}" role="button" tabindex="0"><div class="haut"><div><h3>Bureau ${+i}</h3><div class="lieu">${STAT[b._statut][0]}</div></div><span class="pastille p-sec">${parBv[i]} panneau${parBv[i]>1?"x":""} d'affichage libre dans le secteur</span></div></div>`;}).join("")}
    <details class="comite"><summary>Admin - Ne pas toucher</summary>${adminHTML()}</details><details class="comite"><summary>Forme du fichier CSV</summary><p><code>adresse;latitude;longitude</code>, une ligne par panneau. Exemple : <code>12 rue Thiers;48.8371;2.2409</code>.</p></details>`;
   $$("#liste .carte-bv").forEach(c=>c.onclick=()=>{if(c.dataset.acarte!==undefined){const p=panneaux[+c.dataset.acarte];if(p){if(window.innerWidth<=820)montrer("carte");setTimeout(()=>{carte.invalidateSize();carte.setView([p.y,p.x],18);},60);}}else ouvrir(c.dataset.bv);});
+  $("#btnRel").onclick=()=>ouvrirReleve();
   lierSync(); $("#btnPan").onclick=()=>{modePanneau=!modePanneau;toast(modePanneau?"Cliquez sur la carte à l'endroit du panneau":"Ajout terminé");rendreListe();carte.getContainer().style.cursor=modePanneau?"crosshair":"";};
   $("#impPan").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(tx=>{let n=0,ko=0;
     tx.replace(/^\ufeff/,"").split(/\r?\n/).filter(Boolean).forEach((l,k)=>{const [ad,la,lo]=l.split(";"); if(k===0&&/adresse/i.test(ad||"")) return;
@@ -1482,8 +1567,8 @@ async function chargerConfig(){ if(!SYNC.url) return;
     if(j&&j.config===true&&j.stocks===true){ SRV_STK=true; chargerStocks(); }
     if(j&&j.config===true&&j.immeubles===true){ SRV_IMM=true; await chargerImm(); envoyerImm(); }
     if(j&&j.config===true){ SRV_CFG=true; if(j.scrutins&&typeof j.scrutins==="object"){ Object.assign(SCR,j.scrutins); SV("bb2_scr_srv",SCR); } tout(); } }catch(e){} }
-chargerConfig(); chargerSheet(); viderFile();
-window.addEventListener("online",()=>{viderFile();envoyerImm();});
+chargerConfig(); chargerSheet(); viderFile(); chargerReleves();
+window.addEventListener("online",()=>{viderFile();envoyerImm();viderReleves();});
 </script>
 </body>
 </html>
