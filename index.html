@@ -812,6 +812,7 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
 #feuille.on{display:flex}
 #feuille .panneau{background:var(--carte);width:100%;max-width:520px;max-height:90vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px 16px 28px}
 #feuille label{display:block;font-size:13px;color:var(--encre2);margin-top:12px}
+/*choix-secteur*/#feuille select{display:block;width:100%;padding:10px;border:1px solid var(--ligne);border-radius:10px;font-size:16px;min-height:44px;margin-top:3px;background:#fff}
 #feuille input{width:100%;padding:10px;border:1px solid var(--ligne);border-radius:10px;font-size:16px;min-height:44px;margin-top:3px}
 #feuille .cand{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--ligne);border-radius:10px;padding:10px 12px;margin-top:6px;min-height:52px;cursor:pointer}
 #feuille .cand small{display:block;color:var(--encre3);margin-top:2px}
@@ -1465,8 +1466,8 @@ function ouvrirFin(o){ o=o||{}; if(canal!=="pap"&&canal!=="tract") return;
   const L0=o.lieu?LIEUX_AUTO.find(l=>l.id===o.lieu):null, bv0=L0?L0.bv:(o.bv||""), ordre=classer();
   const st=`style="width:100%;padding:10px;border:1px solid var(--ligne);border-radius:10px;font-size:16px;font-family:inherit"`;
   FEU.innerHTML=`<div class="panneau">${enteteFeuille("Fiche de fin de mission")}
-   ${L0?`<p class="msg" style="margin-top:8px"><b>${icLieu(L0.t)}${esc(L0.nom)}</b> · lieu de passage</p>`:`<label>Secteur<select id="fBv"><option value="">Choisissez le secteur</option>${ordre.map(i=>`<option value="${i}"${i===bv0?" selected":""}>Bureau ${+i} · ${STAT[B[i]._statut][0]}</option>`).join("")}</select></label>
-   <p style="margin:4px 0 8px"><button class="btn" type="button" id="fGeo" style="width:100%">Le secteur où je suis</button></p>`}
+   ${L0?`<p class="msg" style="margin-top:8px"><b>${icLieu(L0.t)}${esc(L0.nom)}</b> · lieu de passage</p>`:`<label>Secteur<select id="fBv"><option value="">Choisissez le secteur</option>${IDS.slice().sort((a,c)=>+a-+c).map(i=>`<option value="${i}"${i===bv0?" selected":""}>Bureau ${+i}</option>`).join("")}</select></label>
+   <p style="margin:4px 0 8px"><button class="btn" type="button" id="fGeo" style="width:100%">📍 Utiliser ma position</button></p>`}
    <label>Date<input type="date" id="sD" value="${aujourdhui()}" max="${aujourdhui()}"></label>
    ${canal==="pap"?`<label>Portes frappées<input type="number" inputmode="numeric" min="0" id="sP"></label><label>Portes ouvertes<input type="number" inputmode="numeric" min="0" id="sO"></label><label>Tracts laissés<small style="display:block;font-weight:400;color:var(--encre3);font-size:12.5px">Facultatif, à remplir par le référent mission</small><input type="number" inputmode="numeric" min="0" id="sT"></label>
    <label>Numéros faits (facultatif)<input type="text" id="sNum" placeholder="ex. rue Thiers : 2 à 40 côté pair, 15, 17"></label>`:`<label>Tracts donnés<small style="display:block;font-weight:400;color:var(--encre3);font-size:12.5px">Facultatif, à remplir par le référent mission</small><input type="number" inputmode="numeric" min="0" id="sT"></label>${L0?"":`<label>Lieu<select id="sL">${optsLieux(bv0)}</select></label>`}`}
