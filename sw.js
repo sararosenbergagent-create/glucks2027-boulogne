@@ -1,5 +1,5 @@
 // Service worker de l'outil terrain (30_pwa.py). Réseau d'abord, copie gardée pour le hors-ligne.
-const CACHE = "terrain-2027-v1";
+const CACHE = "terrain-2027-v2";
 const FICHIERS = ["./", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./maskable-512.png", "./apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FICHIERS)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x)))).then(() => self.clients.claim())); });
