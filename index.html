@@ -814,6 +814,17 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
 #feuille .cand small{display:block;color:var(--encre3);margin-top:2px}
 #feuille .msg{font-size:13.5px;color:var(--encre2);margin:8px 0 0}
 @media print{header,.sortie,.onglets,#zoneCarte,.pasimpr,.comite{display:none!important} main{display:block;height:auto} #detail{display:block!important}}
+#feuille .col-p{border-top:1px solid var(--ligne);padding:2px 0}
+#feuille label.col-l{display:flex;align-items:center;gap:10px;min-height:44px;margin:0;font-weight:600;font-size:14.5px}
+#feuille label.col-l input{width:22px;height:22px;min-height:0;flex:none;margin:0;padding:0}
+#feuille label.col-l small{display:block;font-weight:400;color:var(--encre3);font-size:12px}
+#feuille .col-c{margin:0 0 8px 32px}
+#feuille .col-c p{margin:2px 0 4px;font-size:13px;color:#B3261E}
+#feuille .col-c .rel-cands label{display:inline-flex;align-items:center;gap:8px;width:auto;min-height:44px;padding:4px 14px;border:1.5px solid var(--ligne);border-radius:22px;background:#fff;font-size:14.5px;margin:0;font-weight:400}
+#feuille .col-c .rel-cands input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:none}
+#feuille .col-c .rel-cands label:has(input:checked){border-color:var(--accent);background:#EEF2FB}
+#etape2Aff{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#etape2Aff .btn{white-space:normal;min-height:52px;line-height:1.2}
 #detail .col-p{border-top:1px solid var(--ligne);padding:2px 0}
 #detail label.col-l{display:flex;align-items:center;gap:10px;min-height:44px;margin:0;font-weight:600;font-size:14.5px}
 #detail label.col-l input{width:22px;height:22px;min-height:0;flex:none;margin:0;padding:0}
@@ -853,7 +864,7 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
   </div>
   <h2 class="etape"><span class="n">2</span><span id="etape2T">Choisir le sujet</span></h2>
   <div class="ligne-tract"><label for="tract">Thème du tract</label><select id="tract"><option value="general">Généraliste / candidat</option><option value="meeting">Invitation au meeting</option><option value="inscription">Inscription sur les listes électorales</option><option value="pouvoir_achat">Pouvoir d'achat</option><option value="ecologie">Écologie</option><option value="services_publics">Services publics (santé, école)</option><option value="logement">Logement</option><option value="defense">Défense, Europe</option><option value="securite">Sécurité intérieure</option></select></div>
-  <div id="etape2Aff" style="display:none;margin-top:6px"><button class="btn plein gros" type="button" id="btnRel" style="width:100%">Je signale un affichage</button></div>
+  <div id="etape2Aff" style="display:none;margin-top:6px"><button class="btn plein gros" type="button" id="btnCol">J'ai collé des affiches</button><button class="btn gros" type="button" id="btnRel">Je signale un affichage</button></div>
   <h2 class="etape"><span class="n">3</span>Où aller</h2>
   <p class="aide">Les bureaux sont classés du plus prioritaire au moins prioritaire pour cette activité et ce sujet. Pour voir quoi faire sur place, touchez « Étape 4 : plus de détails » sous un bureau, ou touchez le bureau sur la carte. Vous pouvez aussi chercher une adresse :</p>
   <div class="cherche">
@@ -1102,7 +1113,7 @@ function majEpingles(){
       .bindTooltip(`<b>${nomImm(m)}</b><br>${pctImm(m)} % fait · bureau ${+m.bv}`,{direction:"top",offset:[0,-6]}).on("click",()=>ouvrirImm(m.id)));});
   panneaux.forEach(p=>{const pr=prioPan(p), rc=pr[0]<=2;
     epingles.addLayer(L.marker([p.y,p.x],{icon:L.divIcon({className:"",iconSize:[13,13],iconAnchor:[6.5,6.5],html:`<div style='width:13px;height:13px;background:#6a1b9a;border:2px solid #fff;border-radius:3px;box-shadow:0 0 0 ${rc?"3px #C62828":"1px rgba(0,0,0,.25)"}'></div>`})})
-    .bindTooltip(`<b>Panneau d'affichage</b><br>${esc(p.adresse||"")}<br>Bureau ${+p.bv}${pr[1]?`<br>${pr[1]}`:""}`,{direction:"top",offset:[0,-6]}).on("click",()=>{ if(canal==="affichage"&&p.officiel) ouvrirReleve(p.adresse); else ouvrir(p.bv); }));});
+    .bindTooltip(`<b>Panneau d'affichage</b><br>${esc(p.adresse||"")}<br>Bureau ${+p.bv}${pr[1]?`<br>${pr[1]}`:""}`,{direction:"top",offset:[0,-6]}).on("click",()=>{ if(canal==="affichage"&&p.officiel) ouvrirChoixPanneau(p); else ouvrir(p.bv); }));});
 }
 const leg=L.control({position:"bottomleft"}); leg.onAdd=()=>{const d=L.DomUtil.create("details","legende"); if(window.innerWidth>820) d.open=true;
   L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
@@ -1248,6 +1259,63 @@ function ouvrirReleve(adr){ const off=panneaux.filter(p=>p.officiel); const p=ad
     viderReleves(); rendreListe(); majEpingles(); };
 }
 /*collage-affichage*/
+/*sortie-collage*/
+function itemCollage(p){ const r=dernierReleve(p), vus=new Set(r?candsDe(r).map(x=>x.toLowerCase()):[]), pr=prioPan(p);
+  const autres=r?candsDe(r).filter(x=>!CANDIDATS.some(c=>c.toLowerCase()===x.toLowerCase())).join(", "):"";
+  return `<div class="col-p" data-x="${p.x}" data-y="${p.y}"><label class="col-l"><input type="checkbox" data-col="${esc(p.adresse)}"><span>${esc(p.adresse)}<small><span class="d"></span>Secteur du bureau ${+p.bv} · <span style="color:${pr[0]<=2?"#B3261E":"inherit"}">${pr[1]}</span></small></span></label>
+   <div class="col-c" hidden><p>Encore visibles sur ce panneau ? Décochez ceux que vous venez de recouvrir.</p>
+    ${CANDIDATS.length?`<div class="rel-cands">${CANDIDATS.map(c=>`<label><input type="checkbox" value="${esc(c)}"${vus.has(c.toLowerCase())?" checked":""}>${esc(c)}</label>`).join("")}</div>`:""}
+    <input type="text" class="col-autre" autocomplete="off" placeholder="Autre candidat encore visible" value="${esc(autres)}"></div></div>`; }
+function ouvrirCollage(pre){ const off=panneaux.filter(p=>p.officiel).sort((a,b)=>prioPan(a)[0]-prioPan(b)[0]||a.adresse.localeCompare(b.adresse));
+  FEU.innerHTML=`<div class="panneau">${enteteFeuille("J'ai collé des affiches")}
+   <p style="margin:10px 0 4px"><button class="btn" type="button" id="colGeo" style="width:100%">Trier par distance (autour de moi)</button></p>
+   <p style="margin:8px 0 2px;color:var(--encre2);font-size:14px">Cochez les panneaux où vous avez collé :</p>
+   <div id="colListe">${off.map(itemCollage).join("")}</div>
+   <label>Autres panneaux, non recensés<input id="cAutres" type="number" inputmode="numeric" min="0"></label>
+   <label id="cSectL" hidden>Dans quel secteur ?<select id="cSect">${IDS.slice().sort((a,b)=>+a-+b).map(i=>`<option value="${i}"${i===sel?" selected":""}>Bureau ${+i}</option>`).join("")}</select></label>
+   <label>Date<input id="cDate" type="date" value="${jourISO()}" max="${jourISO()}"></label>
+   <label>Commentaire (facultatif)<textarea id="cCom" rows="2" placeholder="ex. Attal encore visible, panneau abîmé" style="width:100%"></textarea></label>
+   <label>Votre prénom ou nom de militant (facultatif, enregistré dans le Google Sheet)<input id="cMil" type="text" autocomplete="off"></label>
+   <p style="margin-top:14px"><button class="btn plein gros" type="button" id="cOk" style="width:100%">Enregistrer ma sortie</button></p>
+   <p style="font-size:12.5px;color:var(--encre3)">Seulement ce qui est affiché. Jamais de nom d'habitant.</p></div>`;
+  FEU.classList.add("on"); $("#feuX").onclick=fermerFeuille;
+  if(pre){ const x=$$("#colListe [data-col]").find(c=>c.dataset.col===pre); if(x){ x.checked=true; x.closest(".col-p").querySelector(".col-c").hidden=false; $("#colListe").prepend(x.closest(".col-p")); } }
+  $("#cAutres").oninput=()=>{ $("#cSectL").hidden=!(+$("#cAutres").value>0); };
+  $("#colGeo").onclick=()=>{ if(!navigator.geolocation){toast("Position indisponible");return;}
+    navigator.geolocation.getCurrentPosition(g=>{ const la=g.coords.latitude, lo=g.coords.longitude, L=$("#colListe");
+      [...L.children].map(e=>[e,Math.hypot((+e.dataset.x-lo)*73300,(+e.dataset.y-la)*111320)]).sort((a,b)=>a[1]-b[1])
+        .forEach(([e,d])=>{ e.querySelector(".d").textContent=`à ${Math.round(d)} m · `; L.appendChild(e); }); },
+      ()=>toast("Position refusée ou indisponible"),{enableHighAccuracy:true,timeout:10000}); };
+  $("#cOk").onclick=()=>{ const dt=$("#cDate").value||jourISO(); if(dt>jourISO()){toast("La date ne peut pas être dans le futur");return;}
+    const coches=$$("#colListe [data-col]:checked"), nA=Math.max(0,+$("#cAutres").value||0);
+    if(!coches.length&&!nA){ toast("Cochez les panneaux où vous avez collé"); return; }
+    const parBv={}; coches.forEach(x=>{ const p=off.find(q=>q.adresse===x.dataset.col); if(p) parBv[p.bv]=(parBv[p.bv]||0)+1; });
+    if(nA){ const s=$("#cSect").value; parBv[s]=(parBv[s]||0)+nA; }
+    const mil=($("#cMil").value||"").trim(), com=($("#cCom").value||"").trim();
+    Object.entries(parBv).forEach(([bv,n])=>{
+      const ligne={bureau:bv,id:rid(),date:dt,type:"affichage",tract:"",theme:"",lieu:"",portes:0,ouvertes:0,tracts:0,panneaux:n,militant:mil,numeros:"",commentaire:com};
+      (suivi[bv]=suivi[bv]||[]).push({...ligne,militant:""});
+      if(SYNC.url) envoyer(ligne).then(ok=>{ if(!ok){ SYNC.file.push(ligne); SV("bb2_file",SYNC.file); } }); });
+    SV("bb2_suivi",suivi);
+    coches.forEach(x=>{ const p=off.find(q=>q.adresse===x.dataset.col); if(!p) return; const b=x.closest(".col-p");
+      const l={id:"collage-"+rid(),date:dt,panneau:p.adresse,bureau:p.bv||"",notre_affiche:"visible",
+        candidats:[...b.querySelectorAll(".rel-cands input:checked")].map(c=>c.value).join("; "),autre:(b.querySelector(".col-autre")?.value||"").trim().slice(0,120),ts:Date.now()};
+      RELEVES.push(l); REL_FILE.push(l); });
+    SV("bb2_releves",RELEVES); SV("bb2_rel_file",REL_FILE); viderReleves();
+    const tot=Object.values(parBv).reduce((s,n)=>s+n,0); fermerFeuille();
+    toast(`Sortie enregistrée : ${tot} panneau${tot>1?"x":""}${SYNC.url?"":" (sur ce téléphone)"}`); rendreListe(); majEpingles(); if(sel) rendreDetail(); };
+}
+// 4. toucher un panneau recensé : choisir quoi faire
+function ouvrirChoixPanneau(p){ const pr=prioPan(p);
+  FEU.innerHTML=`<div class="panneau">${enteteFeuille(esc(p.adresse))}
+   <p style="margin:8px 0 12px;font-size:13.5px;color:${pr[0]<=2?"#B3261E":"var(--encre2)"}">${pr[1]}</p>
+   <p><button class="btn plein gros" type="button" id="chCol" style="width:100%">J'ai collé ici</button></p>
+   <p><button class="btn gros" type="button" id="chRel" style="width:100%">Je signale ce panneau</button></p>
+   <p><button class="btn lien" type="button" id="chCarte">Voir sur la carte</button></p></div>`;
+  FEU.classList.add("on"); $("#feuX").onclick=fermerFeuille;
+  $("#chCol").onclick=()=>ouvrirCollage(p.adresse); $("#chRel").onclick=()=>ouvrirReleve(p.adresse);
+  $("#chCarte").onclick=()=>{ fermerFeuille(); if(window.innerWidth<=820)montrer("carte"); setTimeout(()=>{carte.invalidateSize();carte.setView([p.y,p.x],18);},60); }; }
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-collage]"); if(b) ouvrirCollage(); });
 document.addEventListener("change",e=>{ const x=e.target; if(!x.matches||!x.matches("#detail [data-col]")) return;
   const c=x.closest(".col-p").querySelector(".col-c"); if(c) c.hidden=!x.checked; });
 function colListe(i){ const off=panneaux.filter(p=>p.officiel); if(!off.length) return "";
@@ -1282,7 +1350,7 @@ function rendreAffichage(o){
    <p style="margin:-4px 2px 10px;color:var(--encre2);font-size:13.5px">Les autres bureaux n'ont aucun panneau d'affichage libre recensé.</p>
   ${Object.keys(parBv).filter(i=>B[i]).sort((a,c)=>parBv[c]-parBv[a]||(+a)-(+c)).map(i=>{const b=B[i];return `<div class="carte-bv" data-bv="${i}" role="button" tabindex="0"><div class="haut"><div><h3>Bureau ${+i}</h3><div class="lieu">${STAT[b._statut][0]}</div></div><span class="pastille p-sec">${parBv[i]} panneau${parBv[i]>1?"x":""} d'affichage libre dans le secteur</span></div></div>`;}).join("")}
    <details class="comite"><summary>Admin - Ne pas toucher</summary>${adminHTML()}</details><details class="comite"><summary>Forme du fichier CSV</summary><p><code>adresse;latitude;longitude</code>, une ligne par panneau. Exemple : <code>12 rue Thiers;48.8371;2.2409</code>.</p></details>`;
-  $$("#liste .carte-bv").forEach(c=>c.onclick=()=>{if(c.dataset.acarte!==undefined){const p=panneaux[+c.dataset.acarte];if(p){if(window.innerWidth<=820)montrer("carte");setTimeout(()=>{carte.invalidateSize();carte.setView([p.y,p.x],18);},60);}}else ouvrir(c.dataset.bv);});
+  $$("#liste .carte-bv").forEach(c=>c.onclick=()=>{if(c.dataset.acarte!==undefined){const p=panneaux[+c.dataset.acarte];if(p){ if(p.officiel&&canal==="affichage"){ ouvrirChoixPanneau(p); return; } if(window.innerWidth<=820)montrer("carte");setTimeout(()=>{carte.invalidateSize();carte.setView([p.y,p.x],18);},60);}}else ouvrir(c.dataset.bv);});
   lierSync(); $("#btnPan").onclick=()=>{modePanneau=!modePanneau;toast(modePanneau?"Cliquez sur la carte à l'endroit du panneau":"Ajout terminé");rendreListe();carte.getContainer().style.cursor=modePanneau?"crosshair":"";};
   $("#impPan").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(tx=>{let n=0,ko=0;
     tx.replace(/^\ufeff/,"").split(/\r?\n/).filter(Boolean).forEach((l,k)=>{const [ad,la,lo]=l.split(";"); if(k===0&&/adresse/i.test(ad||"")) return;
@@ -1334,7 +1402,7 @@ function rendreDetail(){if(immSel&&IMM[immSel]&&canal==="pap"){rendreImm();retur
    <div class="bloc"><h4>Arguments du tract</h4>${tract==="inscription"?`<p>Tract inscription : faire vérifier son inscription sur le service en ligne de Service Public, surtout après un déménagement. Pour voter à la présidentielle, date limite : vendredi 12 mars 2027. Jusqu'au 8 avril 2027 dans certains cas (jeune qui a 18 ans, nationalité française acquise récemment, déménagement pour raison professionnelle).</p><p style="font-size:12.5px;color:var(--encre3)">Source : info.gouv.fr, « Élection présidentielle 2027 : dates et vote ».</p><p class="lecture" style="margin-top:8px">${b.emm5>V.emm5&&b.socio.part_18_39>V.part_18_39?"Dans ce quartier, plus d'habitants arrivés récemment et plus de jeunes adultes que dans le reste de la ville. Ce sont les deux profils les plus souvent non inscrits ou inscrits à leur ancienne adresse.":b.emm5>V.emm5?"Dans ce quartier, plus d'habitants arrivés récemment que dans le reste de la ville. Après un déménagement, on reste souvent inscrit à son ancienne adresse.":b.socio.part_18_39>V.part_18_39?"Dans ce quartier, plus de jeunes adultes que dans le reste de la ville. C'est l'âge où l'on est le plus souvent non inscrit ou mal inscrit.":"Dans ce quartier, moins d'habitants arrivés récemment et moins de jeunes adultes que dans le reste de la ville. Le tract inscription y touchera moins de monde."}</p><div class="t3"><span></span><span class="h b">Ce bureau</span><span class="h">Boulogne</span><span class="h">France</span><span class="l">Habitants arrivés depuis moins de 5 ans (INSEE 2021)</span><i class="v b num">${fr(b.emm5,1)} %</i><i class="v num">${fr(V.emm5,1)} %</i><i class="v num">—</i><span class="l">18-39 ans (INSEE 2023)</span><i class="v b num">${fr(b.socio.part_18_39,1)} %</i><i class="v num">${fr(V.part_18_39,1)} %</i><i class="v num">—</i></div><p style="font-size:12.5px;color:var(--encre3)">France : pas encore calculé avec la même définition.</p>`:gen()?`<p style="color:var(--encre2)">${tract==="meeting"?"Tract meeting : inviter au grand meeting de lancement, dimanche 6 décembre 2026 à 14h30 (portes à 12h30), Paris Event Center, 20 avenue de la Porte de la Villette, Paris 19e. Entrée libre et gratuite ; l'inscription sur glucks2027.fr/meeting donne un accès prioritaire.":"Tract généraliste : présenter le candidat et le projet."}</p>`:ms.length?ms.map(m=>`<p>• ${esc(m.mesure)}${m.source?` <span style="color:var(--encre3);font-size:12.5px">(${esc(m.source)})</span>`:""}</p>`).join(""):`<p style="color:var(--encre2)">Le comité n'a pas encore ajouté les arguments de ce tract.</p>`}</div>
    <div class="bloc" id="blocRues"><h4>${canal==="pap"?"Rues du bureau · cocher au fur et à mesure":"Rues du bureau"}</h4><div class="rues">${b.rues_toutes.map(r=>{const k=i+"|"+r;return canal==="pap"?`<div style="break-inside:avoid"><label><input type="checkbox" data-k="${esc(k)}" ${coches[k]?"checked":""}>${esc(r)}</label>${immRue(i,r).map(m=>`<button class="btn lien rue-imm" type="button" data-imm="${m.id}">${esc(m.adresse.match(/^\S+(\s(bis|ter|quater))?/)[0])}${m.bat?` ${esc(m.bat)}`:""} · ${libImm(m)}</button>`).join("")}</div>`:`<div style="padding:3px 0">${esc(r)}</div>`;}).join("")}</div></div>
    ${canal==="pap"?blocImm(i):""}
-   <div class="bloc pasimpr" id="blocFin"><h4>Fin de sortie</h4><div class="saisie">
+   ${canal==="affichage"?`<div class="bloc pasimpr" id="blocFinAff"><h4>Fin de sortie</h4><p style="font-size:14px">Un collage s'enregistre avec le bouton « J'ai collé des affiches », en haut de la page (étape 2). Il peut couvrir plusieurs secteurs.</p><p><button class="btn plein gros" type="button" data-collage="1" style="width:100%">J'ai collé des affiches</button></p></div>`:""}<div class="bloc pasimpr" id="blocFin"${canal==="affichage"?' style="display:none"':""}><h4>Fin de sortie</h4><div class="saisie">
      <label style="grid-column:1/-1">Date<input type="date" id="sD" value="${aujourdhui()}" max="${aujourdhui()}"></label>
      ${canal==="pap"?`<label>Portes frappées<input type="number" inputmode="numeric" min="0" id="sP"></label><label>Portes ouvertes<input type="number" inputmode="numeric" min="0" id="sO"></label><label>Tracts laissés<input type="number" inputmode="numeric" min="0" id="sT"></label>`:""}
      ${canal==="tract"?`<label>Tracts donnés<input type="number" inputmode="numeric" min="0" id="sT"></label><label>Lieu<select id="sL"><option value="">Dans les rues du secteur</option>${b.lieux.map(x=>`<option>${esc(x[1])}</option>`).join("")}</select></label>`:""}
@@ -1588,7 +1656,7 @@ function exporterSuivi(){let t="bureau;date;type;tract;portes;ouvertes;tracts;pa
 $$("[data-canal]").forEach(b=>b.onclick=()=>{canal=b.dataset.canal;SV("t_canal",canal);maj();});
 $("#tract").onchange=e=>{tract=e.target.value;SV("t_tract",tract);maj();};
 /*militant-sheet*/try{localStorage.removeItem("bb2_militant");}catch(e){}
-function maj(){$(".ligne-tract").style.display=canal==="affichage"?"none":"";$("#etape2Aff").style.display=canal==="affichage"?"":"none";$("#etape2T").textContent=canal==="affichage"?"Signaler un panneau":"Choisir le sujet";$$(".si-pap").forEach(x=>x.style.display=canal==="pap"?"":"none");majHauteurs();majEpingles();if(canal==="affichage"&&sel)fermer();$$("[data-canal]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.canal===canal));rendreListe();if(sel)rendreDetail();
+function maj(){$(".ligne-tract").style.display=canal==="affichage"?"none":"";$("#etape2Aff").style.display=canal==="affichage"?"grid":"none";$("#etape2T").textContent=canal==="affichage"?"Signaler un panneau":"Choisir le sujet";$$(".si-pap").forEach(x=>x.style.display=canal==="pap"?"":"none");majHauteurs();majEpingles();if(canal==="affichage"&&sel)fermer();$$("[data-canal]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.canal===canal));rendreListe();if(sel)rendreDetail();
   document.documentElement.style.setProperty("--h-sortie",$("#sortie").offsetHeight+"px");}
 window.addEventListener("resize",()=>{document.documentElement.style.setProperty("--h-sortie",$("#sortie").offsetHeight+"px");carte.invalidateSize();});
 maj(); setTimeout(()=>{carte.invalidateSize();cadrer();},100);
@@ -1597,7 +1665,7 @@ async function chargerConfig(){ if(!SYNC.url) return;
     if(j&&j.config===true&&j.stocks===true){ SRV_STK=true; chargerStocks(); }
     if(j&&j.config===true&&j.immeubles===true){ SRV_IMM=true; await chargerImm(); envoyerImm(); }
     if(j&&j.config===true){ SRV_CFG=true; if(j.scrutins&&typeof j.scrutins==="object"){ Object.assign(SCR,j.scrutins); SV("bb2_scr_srv",SCR); } tout(); } }catch(e){} }
-chargerConfig(); chargerSheet(); viderFile(); chargerReleves(); $("#btnRel").onclick=()=>ouvrirReleve();
+chargerConfig(); chargerSheet(); viderFile(); chargerReleves(); $("#btnRel").onclick=()=>ouvrirReleve(); $("#btnCol").onclick=()=>ouvrirCollage();
 window.addEventListener("online",()=>{viderFile();envoyerImm();viderReleves();});
 </script>
 </body>
