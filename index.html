@@ -984,15 +984,20 @@ $("#tract").value=tract;
 const STOCK_DEF={meeting:"?",pouvoir_achat:"?"};
 let STOCKS=LS("bb2_stocks",null);
 function majStockMenu(){ const enAttente={}; SYNC.file.forEach(l=>{ if(l.theme) enAttente[l.theme]=(enAttente[l.theme]||0)+(+l.tracts||0); });
+  // Règle de Sara : un thème absent de l'onglet « Stocks » (ou marqué « --- ») n'affiche aucune indication de stock.
   [...$("#tract").options].forEach(o=>{ if(!o.dataset.lib) o.dataset.lib=o.textContent;
-    let r=STOCKS&&STOCKS[o.value]?String(STOCKS[o.value].reste):(STOCK_DEF[o.value]||"---");
+    let r=STOCKS?(STOCKS[o.value]?String(STOCKS[o.value].reste).trim():""):(STOCK_DEF[o.value]||"");
+    if(r==="---") r="";
     if(r!==""&&!isNaN(Number(r))) r=(Number(r)-(enAttente[o.value]||0)).toLocaleString("fr-FR");
-    o.dataset.stk=`(stock : ${r})`; });
+    o.dataset.stk=r?`(stock : ${r})`:""; });
   // Stock aligné à droite (demande de Sara) : un menu natif ne sait pas aligner une partie du texte, on complète avec des
   // espaces insécables mesurés dans la police du menu (espace fin puis espace ultra-fin pour l'ajustement).
   const s=$("#tract"), cs=getComputedStyle(s), cv=(majStockMenu.cv=majStockMenu.cv||document.createElement("canvas")).getContext("2d");
   cv.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`; const W=x=>cv.measureText(x).width;
-  const opts=[...s.options], cible=Math.max(...opts.map(o=>W(o.dataset.lib)+W(o.dataset.stk)))+W("\u00a0\u00a0\u00a0\u00a0");
+  [...s.options].filter(o=>!o.dataset.stk).forEach(o=>{ o.textContent=o.dataset.lib; });
+  const opts=[...s.options].filter(o=>o.dataset.stk); if(!opts.length) return;
+  // Colonne du stock calée sur le plus long libellé du menu (même sans stock), pour qu'elle tombe au bord droit de la liste.
+  const cible=Math.max(...opts.map(o=>W(o.dataset.lib)+W(o.dataset.stk)+W("\u00a0\u00a0\u00a0\u00a0")), ...[...s.options].map(o=>W(o.dataset.lib)));
   const wN=W("\u00a0")||4, wF=W("\u2009")||2, wH=W("\u200a")||1;
   opts.forEach(o=>{ let reste=cible-W(o.dataset.lib)-W(o.dataset.stk), p="";
     const n=Math.floor(reste/wN); p+="\u00a0".repeat(Math.max(0,n)); reste-=n*wN;
