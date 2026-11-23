@@ -814,6 +814,16 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
 #feuille .cand small{display:block;color:var(--encre3);margin-top:2px}
 #feuille .msg{font-size:13.5px;color:var(--encre2);margin:8px 0 0}
 @media print{header,.sortie,.onglets,#zoneCarte,.pasimpr,.comite{display:none!important} main{display:block;height:auto} #detail{display:block!important}}
+#detail .col-p{border-top:1px solid var(--ligne);padding:2px 0}
+#detail label.col-l{display:flex;align-items:center;gap:10px;min-height:44px;margin:0;font-weight:600;font-size:14.5px}
+#detail label.col-l input{width:22px;height:22px;min-height:0;flex:none;margin:0;padding:0}
+#detail label.col-l small{display:block;font-weight:400;color:var(--encre3);font-size:12px}
+#detail .col-c{margin:0 0 8px 32px}
+#detail .col-c p{margin:2px 0 4px;font-size:13px;color:#B3261E}
+#detail .col-c .rel-cands label{display:inline-flex;align-items:center;gap:8px;width:auto;min-height:44px;padding:4px 14px;border:1.5px solid var(--ligne);border-radius:22px;background:#fff;font-size:14.5px;margin:0;font-weight:400}
+#detail .col-c .rel-cands input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:none}
+#detail .col-c .rel-cands label:has(input:checked){border-color:var(--accent);background:#EEF2FB}
+#detail .col-autres summary{min-height:44px;display:flex;align-items:center;color:var(--accent);font-weight:600;cursor:pointer}
 .p-alerte{background:#fff;color:#B3261E;border:1.5px solid #B3261E;font-weight:600}
 .bloc-rel{margin:0 0 14px}.bloc-rel .rel-resume{margin:8px 2px 0;font-size:14px;color:var(--encre2)}
 .rel-det{margin-top:8px;border:1px solid var(--ligne);border-radius:12px;padding:8px 12px;background:#fff}
@@ -1237,6 +1247,20 @@ function ouvrirReleve(adr){ const off=panneaux.filter(p=>p.officiel); const p=ad
     toast(SYNC.url&&SRV_REL?"Relevé enregistré":"Relevé gardé sur ce téléphone, il partira dès que possible");
     viderReleves(); rendreListe(); majEpingles(); };
 }
+/*collage-affichage*/
+document.addEventListener("change",e=>{ const x=e.target; if(!x.matches||!x.matches("#detail [data-col]")) return;
+  const c=x.closest(".col-p").querySelector(".col-c"); if(c) c.hidden=!x.checked; });
+function colListe(i){ const off=panneaux.filter(p=>p.officiel); if(!off.length) return "";
+  const c=centreBV(i), d=p=>Math.hypot((p.x-c.lng)*73300,(p.y-c.lat)*111320);
+  const tri=off.map(p=>[p,p.bv===i?-1:d(p)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+  const nIci=tri.filter(p=>p.bv===i).length, tete=tri.slice(0,nIci+3), reste=tri.slice(nIci+3);
+  const item=p=>{ const r=dernierReleve(p), vus=new Set(r?candsDe(r).map(x=>x.toLowerCase()):[]);
+    const autres=r?candsDe(r).filter(x=>!CANDIDATS.some(c=>c.toLowerCase()===x.toLowerCase())).join(", "):"";
+    return `<div class="col-p"><label class="col-l"><input type="checkbox" data-col="${esc(p.adresse)}"><span>${esc(p.adresse)}<small>${p.bv===i?"Dans ce secteur":`Secteur du bureau ${+p.bv}`}${r?` · dernier relevé le ${dateFr(r.date)}`:" · jamais relevé"}</small></span></label>
+     <div class="col-c" hidden><p>Encore visibles sur ce panneau ? Décochez ceux que vous venez de recouvrir.</p>
+      ${CANDIDATS.length?`<div class="rel-cands">${CANDIDATS.map(c=>`<label><input type="checkbox" value="${esc(c)}"${vus.has(c.toLowerCase())?" checked":""}>${esc(c)}</label>`).join("")}</div>`:""}
+      <input type="text" class="col-autre" autocomplete="off" placeholder="Autre candidat encore visible" value="${esc(autres)}"></div></div>`; };
+  return tete.map(item).join("")+(reste.length?`<details class="col-autres"><summary>Autres panneaux (${reste.length})</summary>${reste.map(item).join("")}</details>`:""); }
 function rendreAffichage(o){
   const prof=b=>`PS-PP 2024 ${fr(b.PP_2024_euro_t1,1)} % · Macron 2022 ${fr(b.centre_2022_pres_t1,1)} % · droite ${fr(b.droite_2024_euro_t1,1)} % · écolos 24 ${fr(b.eco_2024_euro_t1,1)} %`;
   const ids=o.filter(i=>B[i]._statut!=="sec").slice(0,18);
@@ -1314,7 +1338,7 @@ function rendreDetail(){if(immSel&&IMM[immSel]&&canal==="pap"){rendreImm();retur
      <label style="grid-column:1/-1">Date<input type="date" id="sD" value="${aujourdhui()}" max="${aujourdhui()}"></label>
      ${canal==="pap"?`<label>Portes frappées<input type="number" inputmode="numeric" min="0" id="sP"></label><label>Portes ouvertes<input type="number" inputmode="numeric" min="0" id="sO"></label><label>Tracts laissés<input type="number" inputmode="numeric" min="0" id="sT"></label>`:""}
      ${canal==="tract"?`<label>Tracts donnés<input type="number" inputmode="numeric" min="0" id="sT"></label><label>Lieu<select id="sL"><option value="">Dans les rues du secteur</option>${b.lieux.map(x=>`<option>${esc(x[1])}</option>`).join("")}</select></label>`:""}
-     ${canal==="affichage"?`<label>Panneaux posés<input type="number" inputmode="numeric" min="0" id="sPan"></label><label>Rue ou emplacement<input type="text" id="sL" placeholder="ex. rue Thiers, angle Victor Hugo"></label>`:""}
+     ${canal==="affichage"?`<div style="grid-column:1/-1"><b style="font-size:14.5px">Panneaux collés</b> <span style="font-size:12.5px;color:var(--encre3)">cochez ceux où vous avez collé</span>${colListe(i)}</div><label>Autres panneaux, non recensés<input type="number" inputmode="numeric" min="0" id="sPan"></label><label>Rue ou emplacement<input type="text" id="sL" placeholder="ex. rue Thiers, angle Victor Hugo"></label>`:""}
      ${canal==="pap"?`<label style="grid-column:1/-1">Numéros faits (facultatif)<input type="text" id="sNum" placeholder="ex. rue Thiers : 2 à 40 côté pair, 15, 17"></label>`:""}
      <label style="grid-column:1/-1">Nature du tract${canal==="affichage"?" / de l'affiche":""} (texte libre)<input type="text" id="sNat" list="lstNat" placeholder="ex. tract pouvoir d'achat A5, affiche A3 candidate"><datalist id="lstNat">${[...new Set(Object.values(suivi).flat().map(x=>x.tract).filter(Boolean))].map(v=>`<option>${esc(v)}</option>`).join("")}</datalist></label>
      <label style="grid-column:1/-1">Commentaire (facultatif)<textarea id="sCom" rows="2" placeholder="ex. bâtiment B fait, digicode en panne, à reprendre samedi" style="width:100%;padding:10px;border:1px solid var(--ligne);border-radius:10px;font-size:16px;font-family:inherit"></textarea></label>
@@ -1327,14 +1351,20 @@ function rendreDetail(){if(immSel&&IMM[immSel]&&canal==="pap"){rendreImm();retur
   $$("#detail [data-suppr]").forEach(x=>x.onclick=()=>{ if(confirm("Retirer cette sortie ?")){ suivi[i].splice(+x.dataset.suppr,1); SV("bb2_suivi",suivi); rendreDetail(); } });
   $$("#detail .rues input").forEach(x=>x.onchange=()=>{coches[x.dataset.k]=x.checked;SV("t_rues",coches);
     if(x.checked){const r=x.dataset.k.split("|").slice(1).join("|"), n=immRue(i,r).filter(m=>etatImm(m)!=="Terminé").length; if(n) toast(`Attention : ${n} immeuble${n>1?"s":""} de cette rue pas terminé${n>1?"s":""}`);}});
-  $("#sOk").onclick=()=>{const v=s=>+($(s)?.value)||0; const p=canal==="pap"?v("#sP"):0, o=canal==="pap"?v("#sO"):0, tr=canal==="tract"||canal==="pap"?v("#sT"):0, pa=canal==="affichage"?v("#sPan"):0;
+  $("#sOk").onclick=()=>{const v=s=>+($(s)?.value)||0; const p=canal==="pap"?v("#sP"):0, o=canal==="pap"?v("#sO"):0, tr=canal==="tract"||canal==="pap"?v("#sT"):0, pa=canal==="affichage"?v("#sPan")+$$("#detail [data-col]:checked").length:0;
     if(canal==="pap"&&!p){toast("Indiquez le nombre de portes frappées");return;}
     if(canal==="pap"&&o>p){toast("Plus de portes ouvertes que de portes frappées ?");return;}
     if(canal==="tract"&&!tr){toast("Indiquez le nombre de tracts donnés");return;}
-    if(canal==="affichage"&&!pa){toast("Indiquez le nombre de panneaux posés");return;}
+    if(canal==="affichage"&&!pa){toast("Cochez les panneaux collés, ou indiquez un nombre de panneaux non recensés");return;}
     const dt=$("#sD").value; if(!dt){toast("Indiquez la date");return;} if(dt>aujourdhui()){toast("La date ne peut pas être dans le futur");return;}
     const ligne={bureau:i,id:rid(),date:dt,type:canal==="pap"?"porte-à-porte":canal==="tract"?"tractage":"affichage",tract:($("#sNat")?.value||"").trim(),theme:canal==="affichage"?"":tract,lieu:($("#sL")?.value||"").trim(),portes:p,ouvertes:o,tracts:tr,panneaux:pa,militant:($("#sMil")?.value||"").trim(),numeros:($("#sNum")?.value||"").trim(),commentaire:($("#sCom")?.value||"").trim()}; SV("bb2_militant",ligne.militant);
     (suivi[i]=suivi[i]||[]).push({...ligne}); SV("bb2_suivi",suivi);
+    if(canal==="affichage"){ const off=panneaux.filter(p=>p.officiel); let nc=0;
+      $$("#detail [data-col]:checked").forEach(x=>{ const p=off.find(q=>q.adresse===x.dataset.col); if(!p) return; const bloc=x.closest(".col-p");
+        const l={id:"collage-"+rid(),date:dt,panneau:p.adresse,bureau:p.bv||"",notre_affiche:"visible",
+          candidats:[...bloc.querySelectorAll(".rel-cands input:checked")].map(c=>c.value).join("; "),autre:(bloc.querySelector(".col-autre")?.value||"").trim().slice(0,120),ts:Date.now()};
+        RELEVES.push(l); REL_FILE.push(l); nc++; });
+      if(nc){ SV("bb2_releves",RELEVES); SV("bb2_rel_file",REL_FILE); viderReleves(); } }
     immReport=immReport.filter(r=>{const mm=IMM[r.id]; if(!mm||mm.bv!==i) return true; mm.rep={p:(mm.rep?.p||0)+r.p,o:(mm.rep?.o||0)+r.o}; return false;}); SV("bb2_imm",IMM);
     if(SYNC.url){ envoyer(ligne).then(ok=>{ if(!ok){ SYNC.file.push(ligne); SV("bb2_file",SYNC.file); toast("Enregistré ici, envoi au Sheet en attente"); majStockMenu(); } else { toast("Enregistré et envoyé au Sheet"); if(SRV_STK) chargerStocks(); } }); }
     else toast("Sortie enregistrée, merci");
