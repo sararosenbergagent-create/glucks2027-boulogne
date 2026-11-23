@@ -841,8 +841,9 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
     <button data-canal="tract" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z"/><path d="M8 10h8M8 14h8M8 18h5"/></svg>Tractage</button>
     <button data-canal="affichage" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h16v10H4z"/><path d="M12 14v6M8 20h8"/></svg>Affichage</button>
   </div>
-  <h2 class="etape"><span class="n">2</span>Choisir le sujet</h2>
+  <h2 class="etape"><span class="n">2</span><span id="etape2T">Choisir le sujet</span></h2>
   <div class="ligne-tract"><label for="tract">Thème du tract</label><select id="tract"><option value="general">Généraliste / candidat</option><option value="meeting">Invitation au meeting</option><option value="inscription">Inscription sur les listes électorales</option><option value="pouvoir_achat">Pouvoir d'achat</option><option value="ecologie">Écologie</option><option value="services_publics">Services publics (santé, école)</option><option value="logement">Logement</option><option value="defense">Défense, Europe</option><option value="securite">Sécurité intérieure</option></select></div>
+  <div id="etape2Aff" style="display:none;margin-top:6px"><button class="btn plein gros" type="button" id="btnRel" style="width:100%">Je signale un panneau</button></div>
   <h2 class="etape"><span class="n">3</span>Où aller</h2>
   <p class="aide">Les bureaux sont classés du plus prioritaire au moins prioritaire pour cette activité et ce sujet. Pour voir quoi faire sur place, touchez « Étape 4 : plus de détails » sous un bureau, ou touchez le bureau sur la carte. Vous pouvez aussi chercher une adresse :</p>
   <div class="cherche">
@@ -1029,7 +1030,7 @@ async function chargerStocks(){ if(!SYNC.url) return;
   try{ const r=await fetch(SYNC.url+(SYNC.url.includes("?")?"&":"?")+"stocks=1"); const j=await r.json();
     if(j&&j.stocks&&typeof j.stocks==="object"){ STOCKS=j.stocks; SV("bb2_stocks",STOCKS); majStockMenu(); } }catch(e){} }
 majStockMenu();
-const gen=()=>tract==="general"||tract==="meeting";
+const gen=()=>canal==="affichage"||tract==="general"||tract==="meeting";
 function score(i){const b=B[i],al=alertes(b).length;
   if(canal==="tract"){ return gen()? .5*R.passage[i]+.25*R.dens[i]+.25*POT[i] : .35*R.passage[i]+.15*R.dens[i]+.35*AFF[tract][i]+.15*POT[i]; }
   if(tract==="meeting"){const sy=SCR.m26?.5*R.pp[i]+.5*R.mun[i]:R.pp[i]; const s=.8*sy+.2*R.vol[i]; return al? s*.5 : s;}
@@ -1208,7 +1209,7 @@ function ouvrirReleve(adr){ const off=panneaux.filter(p=>p.officiel); const p=ad
     const liste=(pos)=>{ const l=off.map(x=>[x,pos?Math.hypot((x.x-pos[1])*73300,(x.y-pos[0])*111320):null]);
       l.sort((a,b)=>pos?a[1]-b[1]:(prioPan(a[0])[0]-prioPan(b[0])[0]||a[0].adresse.localeCompare(b[0].adresse)));
       return l.map(([x,d])=>{const pr=prioPan(x); return `<button type="button" class="cand" data-adr="${esc(x.adresse)}"><b>${esc(x.adresse)}</b><small>${d!=null?`à ${Math.round(d)} m · `:""}<span class="pastille ${pr[0]<=2?"p-alerte":"p-sec"}" style="font-size:11px;padding:1px 7px">${pr[1]}</span></small></button>`;}).join(""); };
-    FEU.innerHTML=`<div class="panneau">${enteteFeuille("Je signale un affichage")}
+    FEU.innerHTML=`<div class="panneau">${enteteFeuille("Je signale un panneau")}
      <p style="margin:10px 0 4px"><button class="btn" type="button" id="relGeo" style="width:100%">Panneaux autour de moi</button></p>
      <p style="margin:8px 0 4px;color:var(--encre2);font-size:14px">Choisissez le panneau :</p><div id="relListe">${liste(null)}</div></div>`;
     FEU.classList.add("on"); $("#feuX").onclick=fermerFeuille;
@@ -1217,7 +1218,7 @@ function ouvrirReleve(adr){ const off=panneaux.filter(p=>p.officiel); const p=ad
       navigator.geolocation.getCurrentPosition(g=>{ $("#relListe").innerHTML=liste([g.coords.latitude,g.coords.longitude]); lier(); },()=>toast("Position refusée ou indisponible"),{enableHighAccuracy:true,timeout:10000}); };
     return; }
   const pr=prioPan(p), der=pr[2], deja=new Set(der?candsDe(der).map(x=>x.toLowerCase()):[]);
-  FEU.innerHTML=`<div class="panneau">${enteteFeuille("Je signale un affichage")}
+  FEU.innerHTML=`<div class="panneau">${enteteFeuille("Je signale un panneau")}
    <p style="margin:10px 0 0"><b>${esc(p.adresse)}</b><br><button class="btn lien" type="button" id="relChg">Changer de panneau</button></p>
    ${der?`<p style="margin:2px 0 0;font-size:13px;color:var(--encre3)">Dernier relevé le ${dateFr(der.date)} : ${esc(candsDe(der).join(", ")||"aucun candidat noté")}</p>`:""}
    <h4>Notre affiche est</h4><div class="rel-choix">${["visible","recouverte","absente"].map(v=>`<button type="button" data-na="${v}">${v[0].toUpperCase()+v.slice(1)}</button>`).join("")}</div>
@@ -1244,8 +1245,7 @@ function rendreAffichage(o){
   $("#liste").innerHTML=`<div class="titre-liste"><b>Où afficher</b><span>${(D.panneaux||[]).length} recensés · ${poses} posés</span></div>
    <p style="margin:-4px 2px 12px;color:var(--encre2);font-size:13.5px">${(D.panneaux||[]).length} panneaux d'affichage libre recensés à Boulogne (annuaire absurdediffusion.eu, consulté le 20 novembre 2026). Vous pouvez en ajouter sur la carte, ou importer une liste complémentaire en CSV.</p>
    ${(()=>{const off=panneaux.filter(p=>p.officiel), cl=classementCands(), arec=off.filter(p=>prioPan(p)[0]<=2).length;
-     return `<div class="bloc-rel"><button class="btn plein gros" type="button" id="btnRel" style="width:100%">Je signale un affichage</button>
-     <p class="rel-resume">${cl.n?`<b style="color:${arec?"#B3261E":"inherit"}">${arec} panneau${arec>1?"x":""} à recoller</b> · ${cl.n} panneau${cl.n>1?"x":""} relevé${cl.n>1?"s":""} sur ${off.length}`:"Aucun relevé pour l'instant."}</p>
+     return `<div class="bloc-rel"><p class="rel-resume">${cl.n?`<b style="color:${arec?"#B3261E":"inherit"}">${arec} panneau${arec>1?"x":""} à recoller</b> · ${cl.n} panneau${cl.n>1?"x":""} relevé${cl.n>1?"s":""} sur ${off.length}`:"Aucun relevé pour l'instant."}</p>
      ${cl.n?`<details class="rel-det"><summary>Candidats les plus visibles</summary>
        <div class="rel-l"><span>Notre affiche, visible</span><b>${cl.nous} panneau${cl.nous>1?"x":""}</b></div>
        ${cl.l.map(c=>`<div class="rel-l"><span>${esc(c.nom)}</span><b>${c.n} panneau${c.n>1?"x":""}</b></div>`).join("")}
@@ -1259,7 +1259,6 @@ function rendreAffichage(o){
   ${Object.keys(parBv).filter(i=>B[i]).sort((a,c)=>parBv[c]-parBv[a]||(+a)-(+c)).map(i=>{const b=B[i];return `<div class="carte-bv" data-bv="${i}" role="button" tabindex="0"><div class="haut"><div><h3>Bureau ${+i}</h3><div class="lieu">${STAT[b._statut][0]}</div></div><span class="pastille p-sec">${parBv[i]} panneau${parBv[i]>1?"x":""} d'affichage libre dans le secteur</span></div></div>`;}).join("")}
    <details class="comite"><summary>Admin - Ne pas toucher</summary>${adminHTML()}</details><details class="comite"><summary>Forme du fichier CSV</summary><p><code>adresse;latitude;longitude</code>, une ligne par panneau. Exemple : <code>12 rue Thiers;48.8371;2.2409</code>.</p></details>`;
   $$("#liste .carte-bv").forEach(c=>c.onclick=()=>{if(c.dataset.acarte!==undefined){const p=panneaux[+c.dataset.acarte];if(p){if(window.innerWidth<=820)montrer("carte");setTimeout(()=>{carte.invalidateSize();carte.setView([p.y,p.x],18);},60);}}else ouvrir(c.dataset.bv);});
-  $("#btnRel").onclick=()=>ouvrirReleve();
   lierSync(); $("#btnPan").onclick=()=>{modePanneau=!modePanneau;toast(modePanneau?"Cliquez sur la carte à l'endroit du panneau":"Ajout terminé");rendreListe();carte.getContainer().style.cursor=modePanneau?"crosshair":"";};
   $("#impPan").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(tx=>{let n=0,ko=0;
     tx.replace(/^\ufeff/,"").split(/\r?\n/).filter(Boolean).forEach((l,k)=>{const [ad,la,lo]=l.split(";"); if(k===0&&/adresse/i.test(ad||"")) return;
@@ -1334,7 +1333,7 @@ function rendreDetail(){if(immSel&&IMM[immSel]&&canal==="pap"){rendreImm();retur
     if(canal==="tract"&&!tr){toast("Indiquez le nombre de tracts donnés");return;}
     if(canal==="affichage"&&!pa){toast("Indiquez le nombre de panneaux posés");return;}
     const dt=$("#sD").value; if(!dt){toast("Indiquez la date");return;} if(dt>aujourdhui()){toast("La date ne peut pas être dans le futur");return;}
-    const ligne={bureau:i,id:rid(),date:dt,type:canal==="pap"?"porte-à-porte":canal==="tract"?"tractage":"affichage",tract:($("#sNat")?.value||"").trim(),theme:tract,lieu:($("#sL")?.value||"").trim(),portes:p,ouvertes:o,tracts:tr,panneaux:pa,militant:($("#sMil")?.value||"").trim(),numeros:($("#sNum")?.value||"").trim(),commentaire:($("#sCom")?.value||"").trim()}; SV("bb2_militant",ligne.militant);
+    const ligne={bureau:i,id:rid(),date:dt,type:canal==="pap"?"porte-à-porte":canal==="tract"?"tractage":"affichage",tract:($("#sNat")?.value||"").trim(),theme:canal==="affichage"?"":tract,lieu:($("#sL")?.value||"").trim(),portes:p,ouvertes:o,tracts:tr,panneaux:pa,militant:($("#sMil")?.value||"").trim(),numeros:($("#sNum")?.value||"").trim(),commentaire:($("#sCom")?.value||"").trim()}; SV("bb2_militant",ligne.militant);
     (suivi[i]=suivi[i]||[]).push({...ligne}); SV("bb2_suivi",suivi);
     immReport=immReport.filter(r=>{const mm=IMM[r.id]; if(!mm||mm.bv!==i) return true; mm.rep={p:(mm.rep?.p||0)+r.p,o:(mm.rep?.o||0)+r.o}; return false;}); SV("bb2_imm",IMM);
     if(SYNC.url){ envoyer(ligne).then(ok=>{ if(!ok){ SYNC.file.push(ligne); SV("bb2_file",SYNC.file); toast("Enregistré ici, envoi au Sheet en attente"); majStockMenu(); } else { toast("Enregistré et envoyé au Sheet"); if(SRV_STK) chargerStocks(); } }); }
@@ -1558,7 +1557,7 @@ function exporterSuivi(){let t="bureau;date;type;tract;portes;ouvertes;tracts;pa
 // ---------- commandes
 $$("[data-canal]").forEach(b=>b.onclick=()=>{canal=b.dataset.canal;SV("t_canal",canal);maj();});
 $("#tract").onchange=e=>{tract=e.target.value;SV("t_tract",tract);maj();};
-function maj(){$$(".si-pap").forEach(x=>x.style.display=canal==="pap"?"":"none");majHauteurs();majEpingles();if(canal==="affichage"&&sel)fermer();$$("[data-canal]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.canal===canal));rendreListe();if(sel)rendreDetail();
+function maj(){$(".ligne-tract").style.display=canal==="affichage"?"none":"";$("#etape2Aff").style.display=canal==="affichage"?"":"none";$("#etape2T").textContent=canal==="affichage"?"Signaler un panneau":"Choisir le sujet";$$(".si-pap").forEach(x=>x.style.display=canal==="pap"?"":"none");majHauteurs();majEpingles();if(canal==="affichage"&&sel)fermer();$$("[data-canal]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.canal===canal));rendreListe();if(sel)rendreDetail();
   document.documentElement.style.setProperty("--h-sortie",$("#sortie").offsetHeight+"px");}
 window.addEventListener("resize",()=>{document.documentElement.style.setProperty("--h-sortie",$("#sortie").offsetHeight+"px");carte.invalidateSize();});
 maj(); setTimeout(()=>{carte.invalidateSize();cadrer();},100);
@@ -1567,7 +1566,7 @@ async function chargerConfig(){ if(!SYNC.url) return;
     if(j&&j.config===true&&j.stocks===true){ SRV_STK=true; chargerStocks(); }
     if(j&&j.config===true&&j.immeubles===true){ SRV_IMM=true; await chargerImm(); envoyerImm(); }
     if(j&&j.config===true){ SRV_CFG=true; if(j.scrutins&&typeof j.scrutins==="object"){ Object.assign(SCR,j.scrutins); SV("bb2_scr_srv",SCR); } tout(); } }catch(e){} }
-chargerConfig(); chargerSheet(); viderFile(); chargerReleves();
+chargerConfig(); chargerSheet(); viderFile(); chargerReleves(); $("#btnRel").onclick=()=>ouvrirReleve();
 window.addEventListener("online",()=>{viderFile();envoyerImm();viderReleves();});
 </script>
 </body>
