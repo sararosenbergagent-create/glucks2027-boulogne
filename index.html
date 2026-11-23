@@ -924,7 +924,7 @@ function rangs(f){const v=IDS.map(i=>[i,f(B[i])]).sort((a,b)=>a[1]-b[1]),o={};v.
 const R={pp:rangs(b=>b.PP_2024_euro_t1), dyn:rangs(b=>b.evol_relative_pp),
   pers:(()=>{const a=rangs(b=>b.centre_2022_pres_t1),c=rangs(b=>-b.evol_relative_centre),o={};IDS.forEach(i=>o[i]=(a[i]+c[i])/2);return o})(),
   mob:(()=>{const g=rangs(b=>b.gauche_2022_pres_t1),a=rangs(b=>100-b.particip_2022_pres_t1),o={};IDS.forEach(i=>o[i]=.6*g[i]+.4*a[i]);return o})(),
-  vol:rangs(b=>b.inscrits), passage:rangs(b=>b.indice_passage), dens:rangs(b=>b.densite_menages)};
+  vol:rangs(b=>b.inscrits), /*marches-hors-bureaux*/passage:rangs(b=>b.indice_passage-8*b.lieux.filter(x=>x[0]==="marche").length), dens:rangs(b=>b.densite_menages)};
 // potentiel : meilleur levier (consolider / convaincre / mobiliser) + taille du bureau
 // Scrutins pris en compte (réglage admin, gardé sur l'appareil). Défaut : partielle 2025 décochée, municipales 2026 cochée.
 const SCRUTINS=[["p22","Présidentielle 2022, 1er tour"],["e19","Européennes 2019"],["e24","Européennes 2024"],["l25","Législative partielle 2025 (9e circ.)"],["m26","Municipales 2026, 1er tour"]];
