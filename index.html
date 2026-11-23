@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#F90290"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Terrain 2027">
 <meta name="theme-color" content="#1c1b19">
 <title>glucks2027 · Boulogne</title>
 <style>
@@ -814,6 +815,8 @@ main{display:grid;grid-template-columns:minmax(360px,440px) 1fr;grid-template-ro
 #feuille .cand small{display:block;color:var(--encre3);margin-top:2px}
 #feuille .msg{font-size:13.5px;color:var(--encre2);margin:8px 0 0}
 @media print{header,.sortie,.onglets,#zoneCarte,.pasimpr,.comite{display:none!important} main{display:block;height:auto} #detail{display:block!important}}
+#aideInstall{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:3000;background:#fff;border:1px solid var(--ligne);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:10px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:14px;max-width:520px;margin:0 auto}
+#aideInstall .btn{min-height:44px}
 #feuille .col-p{border-top:1px solid var(--ligne);padding:2px 0}
 #feuille label.col-l{display:flex;align-items:center;gap:10px;min-height:44px;margin:0;font-weight:600;font-size:14.5px}
 #feuille label.col-l input{width:22px;height:22px;min-height:0;flex:none;margin:0;padding:0}
@@ -1670,6 +1673,18 @@ async function chargerConfig(){ if(!SYNC.url) return;
     if(j&&j.config===true&&j.immeubles===true){ SRV_IMM=true; await chargerImm(); envoyerImm(); }
     if(j&&j.config===true){ SRV_CFG=true; if(j.scrutins&&typeof j.scrutins==="object"){ Object.assign(SCR,j.scrutins); SV("bb2_scr_srv",SCR); } tout(); } }catch(e){} }
 chargerConfig(); chargerSheet(); viderFile(); chargerReleves(); $("#btnRel").onclick=()=>ouvrirReleve(); $("#btnCol").onclick=()=>ouvrirCollage();
+/*pwa*/
+if("serviceWorker" in navigator && /^https:|^http:\/\/(127\.0\.0\.1|localhost)/.test(location.href)) navigator.serviceWorker.register("sw.js").catch(()=>{});
+(()=>{ const deja=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+  if(deja||LS("bb2_aide_install",false)) return;
+  const bandeau=html=>{ const d=document.createElement("div"); d.id="aideInstall"; d.setAttribute("role","note");
+    d.innerHTML=html+'<button class="btn lien" type="button" id="aideNon">Non merci</button>'; document.body.appendChild(d);
+    $("#aideNon").onclick=()=>{ SV("bb2_aide_install",true); d.remove(); }; return d; };
+  if(/iphone|ipad|ipod/i.test(navigator.userAgent)){ setTimeout(()=>bandeau('<span>Pour l\'avoir comme une appli : touchez <b>Partager</b> puis <b>Sur l\'écran d\'accueil</b>.</span>'),3000); return; }
+  window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); if($("#aideInstall")) return;
+    const d=bandeau('<button class="btn plein" type="button" id="aideOui">Installer l\'appli</button>');
+    $("#aideOui").onclick=async()=>{ e.prompt(); try{ await e.userChoice; }catch(_){} SV("bb2_aide_install",true); d.remove(); }; });
+})();
 window.addEventListener("online",()=>{viderFile();envoyerImm();viderReleves();});
 </script>
 </body>
