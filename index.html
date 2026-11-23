@@ -1148,12 +1148,12 @@ const IC={ok:`<svg class="i ok" viewBox="0 0 24 24"><path d="M12 21s-7-5.5-7-11a
   cible:`<svg class="i ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>`,
   stop:`<svg class="i ko" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>`,
   lieu:`<svg class="i" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z"/></svg>`};
-const LIEUX_AUTO=[{id:"marche-escudier",t:"marche",nom:"Marché Escudier-Jaurès"},{id:"marche-billancourt",t:"marche",nom:"Marché de Billancourt"},{id:"grand-place",t:"place",nom:"Grand Place",sous:"Centre commercial Les Passages"}];
-LIEUX_AUTO.forEach(l=>{const p=(D.points_passage||[]).find(q=>q.nom===l.nom); if(p){l.x=p.x;l.y=p.y;l.bv=p.bv;return;} const c=(D.commerces||[]).find(q=>q[0]==="Les Passages"); if(c){l.x=c[2];l.y=c[3];l.bv=c[1];}});
+const LIEUX_AUTO=[{id:"marche-escudier",t:"marche",nom:"Marché Escudier-Jaurès"},{id:"marche-billancourt",t:"marche",nom:"Marché de Billancourt"},{id:"grand-place",t:"place",nom:"Grand Place",sous:"Centre commercial Les Passages"},/*place-sembat*/{id:"place-sembat",t:"rond_point",nom:"Place Marcel Sembat",sous:"Rond-point",x:2.24360,y:48.83358}];
+LIEUX_AUTO.forEach(l=>{if(l.x&&!l.bv){l.bv=bvDuPoint(l.x,l.y);return;} const p=(D.points_passage||[]).find(q=>q.nom===l.nom); if(p){l.x=p.x;l.y=p.y;l.bv=p.bv;return;} const c=(D.commerces||[]).find(q=>q[0]==="Les Passages"); if(c){l.x=c[2];l.y=c[3];l.bv=c[1];}});
 const NOMS_AUTO=new Set(LIEUX_AUTO.map(l=>l.nom));
 const lieuxBv=b=>b.lieux.filter(x=>!NOMS_AUTO.has(x[1]));
 let selLieu=null;
-const EMOJI_LIEU={ecole:"🏫",entree_metro:"Ⓜ️",supermarche:"🛒",poste:"📮",station:"Ⓜ️",marche:"🧺",place:"🛍️",centre_commercial:"🛍️"};
+const EMOJI_LIEU={ecole:"🏫",entree_metro:"Ⓜ️",supermarche:"🛒",poste:"📮",station:"Ⓜ️",marche:"🧺",rond_point:"🚦",place:"🛍️",centre_commercial:"🛍️"};
 function icLieu(t){const e=EMOJI_LIEU[t]; return e?`<span class="emo-lieu" aria-hidden="true">${e}</span>`:`<span class="emo-lieu"></span>`;}
 function rendreListe(){const o=classer(); styler();
   if(canal==="affichage"){ rendreAffichage(o); return; }
@@ -1408,14 +1408,14 @@ function rendreAffichage(o){
 const PERIM={"0024":"le périmètre de ce bureau a changé entre 2019 et 2022 : environ 370 inscrits sont passés du bureau 24 au bureau 25. Les chiffres de 2017 et 2019 portent sur l'ancien périmètre.",
  "0025":"le périmètre de ce bureau a changé entre 2019 et 2022 : environ 370 inscrits sont arrivés du bureau 24. Les chiffres de 2017 et 2019 portent sur l'ancien périmètre."};
 function rendreDetail(){if(immSel&&IMM[immSel]&&canal==="pap"){rendreImm();return;} immSel=null;const i=sel,b=B[i],s=STAT[b._statut],al=alertes(b),c=cibles(b),ms=gen()?[]:mesures.filter(m=>m.theme===tract);
-  const HORS_COUV=new Set(IDS.flatMap(j=>B[j].lieux.filter(x=>x[0]==="marche"||x[1]==="Marcel Sembat"||x[1]==="Grand Place"||x[0]==="centre_commercial").map(x=>x[1])).concat(["Centre commercial Les Passages"]));
+  const HORS_COUV=new Set(IDS.flatMap(j=>B[j].lieux.filter(x=>x[0]==="marche"||x[1]==="Grand Place"||x[0]==="centre_commercial").map(x=>x[1])).concat(["Centre commercial Les Passages"],LIEUX_AUTO.map(l=>l.nom)));
   const fait=(suivi[i]||[]).reduce((t,x)=>t+(+x.portes||0),0), tractsFaits=(suivi[i]||[]).filter(x=>!HORS_COUV.has(x.lieu)).reduce((t,x)=>t+(+x.tracts||0),0),
     tractsHors=(suivi[i]||[]).filter(x=>HORS_COUV.has(x.lieu)).reduce((t,x)=>t+(+x.tracts||0),0);
   $("#detail").innerHTML=`<button class="btn lien retour pasimpr" id="ret">← Retour à la liste</button>
    <div class="bloc"><div class="carte-bv" style="border:0;padding:0;margin:0;cursor:default"><div class="haut"><div><h3 style="font-size:20px">Bureau ${+i}</h3><div class="lieu">Bureau de vote : ${esc(b.lieu_vote)}</div></div><span class="pastille ${s[1]}">${s[0]}</span></div></div>
     <div class="chiffres" style="margin-top:10px">${canal==="pap"
       ? `<span>Portes estimées</span><b class="num">${fr(b.menages_estimes)}</b><span>Portes déjà faites</span><b class="num">${fr(fait)}</b>`
-      : `<span>Lieux de passage repérés</span><b class="num">${fr(lieuxBv(b).length)}</b><span>Commerces</span><b class="num">${fr(b.nb_commerces)}</b><span>Tracts déjà donnés dans le secteur</span><b class="num">${fr(tractsFaits)}</b>${tractsHors?`<span>Tracts au marché, à Marcel Sembat, à Grand Place ou aux Passages (non comptés pour le secteur)</span><b class="num">${fr(tractsHors)}</b>`:""}`}<span>Inscrits</span><b class="num">${fr(b.inscrits)}</b></div></div>
+      : `<span>Lieux de passage repérés</span><b class="num">${fr(lieuxBv(b).length)}</b><span>Commerces</span><b class="num">${fr(b.nb_commerces)}</b><span>Tracts déjà donnés dans le secteur</span><b class="num">${fr(tractsFaits)}</b>${tractsHors?`<span>Tracts aux lieux de passage de toute la ville (non comptés pour le secteur)</span><b class="num">${fr(tractsHors)}</b>`:""}`}<span>Inscrits</span><b class="num">${fr(b.inscrits)}</b></div></div>
    ${canal==="pap"?`<nav class="ancres pasimpr" aria-label="Aller directement à">${[[(ARG[i]&&ARG[i].cibles&&ARG[i].cibles.length)?"blocArg":"blocVote","Argumentaire"],["blocRues","Rues"],["blocImm","Immeubles"],["blocFin","Fin de sortie"]].map(([id,l])=>`<button class="btn" type="button" data-ancre="${id}">${l}</button>`).join("")}</nav>`:""}
    <div class="bloc" id="blocVote"><h4>Ce que dit le vote ici</h4>${PERIM[i]?`<p class="lecture" style="border-left:3px solid var(--prio);padding-left:8px;margin-bottom:10px"><b>Attention :</b> ${PERIM[i]}</p>`:""}${c.map(x=>ficheElec(b,x)).join("")}
      <p class="lecture">Comment lire : chaque chiffre est un score déjà obtenu à une élection passée, en % des votes exprimés (participation : en % des inscrits). Ce bureau, puis toute la ville de Boulogne, puis toute la France. Ce n'est ni une évolution, ni l'opinion de chaque habitant.</p></div>
