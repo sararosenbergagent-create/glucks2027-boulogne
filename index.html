@@ -1472,11 +1472,11 @@ function ouvrirFin(o){ o=o||{}; if(canal!=="pap"&&canal!=="tract") return;
   const L0=o.lieu?LIEUX_AUTO.find(l=>l.id===o.lieu):null, bv0=L0?L0.bv:(o.bv||""), ordre=classer();
   const st=`style="width:100%;padding:10px;border:1px solid var(--ligne);border-radius:10px;font-size:16px;font-family:inherit"`;
   FEU.innerHTML=`<div class="panneau">${enteteFeuille("Fiche de fin de mission")}
-   ${L0?`<p class="msg" style="margin-top:8px"><b>${icLieu(L0.t)}${esc(L0.nom)}</b> · lieu de passage</p>`:`<label>Secteur<select id="fBv"><option value="">Choisissez le secteur</option>${IDS.slice().sort((a,c)=>+a-+c).map(i=>`<option value="${i}"${i===bv0?" selected":""}>Bureau ${+i}</option>`).join("")}</select></label>
+   ${L0?`<p class="msg" style="margin-top:8px"><b>${icLieu(L0.t)}${esc(L0.nom)}</b> · lieu de passage</p>`:`<label>Secteur<select id="fBv"><option value="">Choisissez le secteur</option>/*lieux-menu-secteur*/${canal==="tract"?`<optgroup label="Lieux de passage de toute la ville">${LIEUX_AUTO.filter(l=>l.bv).map(l=>`<option value="lieu:${l.id}">${l.nom}${l.sous?" ("+l.sous+")":""}</option>`).join("")}</optgroup><optgroup label="Bureaux">`:""}${IDS.slice().sort((a,c)=>+a-+c).map(i=>`<option value="${i}"${i===bv0?" selected":""}>Bureau ${+i}</option>`).join("")}${canal==="tract"?"</optgroup>":""}</select></label>
    <p style="margin:4px 0 8px"><button class="btn" type="button" id="fGeo" style="width:100%">📍 Utiliser ma position</button></p>`}
    <label>Date<input type="date" id="sD" value="${aujourdhui()}" max="${aujourdhui()}"></label>
    ${canal==="pap"?`<label>Portes frappées<input type="number" inputmode="numeric" min="0" id="sP"></label><label>Portes ouvertes<input type="number" inputmode="numeric" min="0" id="sO"></label><label>Tracts laissés<small style="display:block;font-weight:400;color:var(--encre3);font-size:12.5px">Facultatif, à remplir par une seule personne sur la mission</small><input type="number" inputmode="numeric" min="0" id="sT"></label>
-   <label>Numéros faits (facultatif)<input type="text" id="sNum" placeholder="ex. rue Thiers : 2 à 40 côté pair, 15, 17"></label>`:`<label>Nombre de tracts donnés (estimation)<small style="display:block;font-weight:400;color:var(--encre3);font-size:12.5px">Facultatif, à remplir par une seule personne sur la mission</small><input type="number" inputmode="numeric" min="0" id="sT"></label>${L0?"":`<label>Lieu<select id="sL">${optsLieux(bv0)}</select></label>`}`}
+   <label>Numéros faits (facultatif)<input type="text" id="sNum" placeholder="ex. rue Thiers : 2 à 40 côté pair, 15, 17"></label>`:`<label>Nombre de tracts donnés (estimation)<small style="display:block;font-weight:400;color:var(--encre3);font-size:12.5px">Facultatif, à remplir par une seule personne sur la mission</small><input type="number" inputmode="numeric" min="0" id="sT"></label>${L0?"":`<label id="sLw">Lieu<select id="sL">${optsLieux(bv0)}</select></label>`}`}
    <label>Nature du tract (texte libre)<input type="text" id="sNat" list="lstNat" placeholder="ex. tract pouvoir d'achat A5"><datalist id="lstNat">${[...new Set(Object.values(suivi).flat().map(x=>x.tract).filter(Boolean))].map(v=>`<option>${esc(v)}</option>`).join("")}</datalist></label>
    <label>Commentaire (facultatif)<textarea id="sCom" rows="2" placeholder="${canal==="tract"?"ex. beaucoup de passage vers 18 h, à refaire":"ex. bâtiment B fait, digicode en panne, à reprendre samedi"}" ${st}></textarea></label>
    <label>Objections fréquentes (facultatif)<textarea id="sObj" rows="2" maxlength="300" placeholder="ex. objection sur les déplacements" ${st}></textarea></label>
@@ -1485,8 +1485,9 @@ function ouvrirFin(o){ o=o||{}; if(canal!=="pap"&&canal!=="tract") return;
    <p style="margin-top:14px"><button class="btn plein gros" type="button" id="sOk" style="width:100%">Enregistrer</button></p>
    <p style="font-size:12.5px;color:var(--encre3)">Jamais de nom d'habitant ni d'opinion sur une personne.${SYNC.url?"":" Enregistré sur ce téléphone."}</p></div>`;
   FEU.classList.add("on"); $("#feuX").onclick=fermerFeuille;
-  const bvF=()=>L0?L0.bv:($("#fBv")?$("#fBv").value:"");
-  if(!L0){ $("#fBv").onchange=()=>{ const s=$("#sL"); if(s) s.innerHTML=optsLieux(bvF()); remplirRep(bvF()); };
+  const lieuM=()=>{ const v=$("#fBv")?$("#fBv").value:""; return v.startsWith("lieu:")?LIEUX_AUTO.find(l=>l.id===v.slice(5)):null; };
+  const bvF=()=>L0?L0.bv:(lieuM()?lieuM().bv:($("#fBv")?$("#fBv").value:""));
+  if(!L0){ $("#fBv").onchange=()=>{ const s=$("#sL"), w=$("#sLw"), lm=lieuM(); if(w) w.style.display=lm?"none":""; if(s) s.innerHTML=lm?"":optsLieux(bvF()); if(!lm) remplirRep(bvF()); };
     $("#fGeo").onclick=()=>{ if(!navigator.geolocation){toast("Position indisponible");return;}
       navigator.geolocation.getCurrentPosition(g=>{ const b=bvDuPoint(g.coords.longitude,g.coords.latitude); if(!b){toast("Vous n'êtes pas dans Boulogne-Billancourt");return;} $("#fBv").value=b; $("#fBv").onchange(); },()=>toast("Position refusée ou indisponible"),{enableHighAccuracy:true,timeout:10000}); }; }
   if(bv0) remplirRep(bv0);
@@ -1496,7 +1497,7 @@ function ouvrirFin(o){ o=o||{}; if(canal!=="pap"&&canal!=="tract") return;
     if(canal==="pap"&&oo>p){toast("Plus de portes ouvertes que de portes frappées ?");return;}
     /*tracts-facultatif*//*libelle-tracts*/
     const dt=$("#sD").value; if(!dt){toast("Indiquez la date");return;} if(dt>aujourdhui()){toast("La date ne peut pas être dans le futur");return;}
-    const ligne={bureau:i,id:rid(),date:dt,heure:"",type:canal==="pap"?"porte-à-porte":"tractage",tract:($("#sNat")?.value||"").trim(),theme:tract,lieu:L0?L0.nom:($("#sL")?.value||"").trim(),portes:p,ouvertes:oo,tracts:tr,panneaux:0,militant:($("#sMil")?.value||"").trim(),numeros:($("#sNum")?.value||"").trim(),commentaire:($("#sCom")?.value||"").trim(),objections:(($("#sObj")?.value)||"").trim().slice(0,300),argument:(($("#sArg")?.value)||"").trim().slice(0,300)};
+    const ligne={bureau:i,id:rid(),date:dt,heure:"",type:canal==="pap"?"porte-à-porte":"tractage",tract:($("#sNat")?.value||"").trim(),theme:tract,lieu:L0?L0.nom:(lieuM()?lieuM().nom:($("#sL")?.value||"").trim()),portes:p,ouvertes:oo,tracts:tr,panneaux:0,militant:($("#sMil")?.value||"").trim(),numeros:($("#sNum")?.value||"").trim(),commentaire:($("#sCom")?.value||"").trim(),objections:(($("#sObj")?.value)||"").trim().slice(0,300),argument:(($("#sArg")?.value)||"").trim().slice(0,300)};
     (suivi[i]=suivi[i]||[]).push({...ligne,militant:""}); SV("bb2_suivi",suivi);
     immReport=immReport.filter(r=>{const mm=IMM[r.id]; if(!mm||mm.bv!==i) return true; mm.rep={p:(mm.rep?.p||0)+r.p,o:(mm.rep?.o||0)+r.o}; return false;}); SV("bb2_imm",IMM);
     if(SYNC.url){ envoyer(ligne).then(ok=>{ if(!ok){ SYNC.file.push(ligne); SV("bb2_file",SYNC.file); toast("Enregistré ici, envoi au Sheet en attente"); majStockMenu(); } else { toast("Enregistré et envoyé au Sheet"); if(SRV_STK) chargerStocks(); } }); }
