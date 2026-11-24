@@ -1010,7 +1010,7 @@ if(["https://script.google.com/macros/s/AKfycbwzqzpigmYjzrSkybG2S7-q_NpRgLumr4et
 const CLE_SHEET="d8AuWpF2w9Q3Mhv5UPxdelDg";
 /*cle-sheet*/(()=>{const f=window.fetch.bind(window); window.fetch=(u,o)=>{ if(typeof u==="string"&&u.indexOf("https://script.google.com/macros/")===0) u+=(u.includes("?")?"&":"?")+"k="+encodeURIComponent(CLE_SHEET); return f(u,o); };})();
 const SYNC={url:LS("bb2_sync","https://script.google.com/macros/s/AKfycbx0EZSmSK8b2V2IiQLS77wsRWS7z-RCZFDgmgadqHNSG6tKNBX1d5NJ34YtF5EYBCps/exec"),file:LS("bb2_file",[])};
-let panneaux=(()=>{const loc=LS("bb2_panneaux",null); const off=(D.panneaux||[]).map((p,k)=>({x:p.x,y:p.y,bv:p.bv,adresse:p.adresse,officiel:true,id:"off"+k,av:!!p.a_verifier,proches:p.bv_proches||[],methode:p.methode||""}));
+let panneaux=(()=>{/*panneau-manquant-email*/const loc=null; const off=(D.panneaux||[]).map((p,k)=>({x:p.x,y:p.y,bv:p.bv,adresse:p.adresse,officiel:true,id:"off"+k,av:!!p.a_verifier,proches:p.bv_proches||[],methode:p.methode||""}));
   if(!loc) return off;
   const vus=new Set(off.map(p=>p.adresse)); return off.concat(loc.filter(p=>!vus.has(p.adresse)));})();
 let modePanneau=false;
@@ -1106,11 +1106,7 @@ const COUL_REC={"porte-à-porte":"#d55e00","tractage":"#0072b2","affichage":"#00
 const epingles=L.layerGroup().addTo(carte);
 const centreBV=id=>couches[id].getBounds().getCenter();
 const bvDuPoint=(x,y)=>{ const f=GEO.features.find(f=>dansPoly(x,y,f.geometry)); return f?f.properties.bv:""; };
-carte.on("click",e=>{ if(!modePanneau) return;
-  const ad=prompt("Adresse ou repère du panneau (ex. 12 rue Thiers) :","");
-  if(ad===null) return;
-  const p={x:+e.latlng.lng.toFixed(5), y:+e.latlng.lat.toFixed(5), bv:bvDuPoint(e.latlng.lng,e.latlng.lat), adresse:ad.trim()};
-  panneaux.push(p); SV("bb2_panneaux",panneaux); majEpingles(); toast(`Panneau ajouté, bureau ${+p.bv||"hors Boulogne"}`); });
+
 function majEpingles(){
   epingles.clearLayers();
   Object.entries(suivi).forEach(([bv,l])=>{
@@ -1400,15 +1396,10 @@ function rendreAffichage(o){
    <div class="titre-liste" style="margin-top:14px"><b>Bureaux qui ont un panneau</b><span>${Object.keys(parBv).filter(i=>B[i]).length} bureaux</span></div>
    <p style="margin:-4px 2px 10px;color:var(--encre2);font-size:13.5px">Les autres bureaux n'ont aucun panneau d'affichage libre recensé.</p>
   ${Object.keys(parBv).filter(i=>B[i]).sort((a,c)=>{const o={prio:0,poss:1,sec:2,stop:3};return (o[B[a]._statut]??9)-(o[B[c]._statut]??9)||parBv[c]-parBv[a]||(+a)-(+c)}).map(i=>{const b=B[i];return `<div class="carte-bv" data-bv="${i}" role="button" tabindex="0"><div class="haut"><div><h3>Bureau ${+i}</h3><div class="lieu">${STAT[b._statut][0]}</div></div><span class="pastille p-sec" style="white-space:normal;max-width:100%">${parBv[i]} panneau${parBv[i]>1?"x":""} d'affichage libre dans le secteur</span></div></div>`;}).join("")}
-   <details class="comite" id="admAff"${modePanneau?" open":""}><summary>Outils Admin - Ne pas toucher</summary>${adminHTML()}/*ajout-panneau-admin*/${ADM_OK?`<h4 style="margin-top:10px">Ajouter des panneaux</h4><p><button class="btn" id="btnPan">${modePanneau?"Cliquez sur la carte pour placer":"Ajouter des panneaux sur la carte"}</button> <label class="btn" for="impPan">Importer (CSV)</label><input type="file" id="impPan" accept=".csv" hidden></p><p style="font-size:12.5px;color:var(--encre3)">Forme du fichier CSV : <code>adresse;latitude;longitude</code>, une ligne par panneau. Exemple : <code>12 rue Thiers;48.8371;2.2409</code>.</p>`:""}</details>`;
+   <p><a class="btn" id="panManq" href="mailto:contact@sara-rosenberg.fr?subject=Adresse%20du%20panneau%20manquant%20-%20campagne%20glucks2027%20Boulogne&body=Adresse%20du%20panneau%20%3A%20">Signaler un panneau manquant</a></p>
+   <details class="comite" id="admAff"><summary>Outils Admin - Ne pas toucher</summary>${adminHTML()}</details>`;
   $$("#liste .carte-bv").forEach(c=>c.onclick=()=>{if(c.dataset.acarte!==undefined){const p=panneaux[+c.dataset.acarte];if(p){ if(p.officiel&&canal==="affichage"){ ouvrirChoixPanneau(p); return; } if(window.innerWidth<=820)montrer("carte");setTimeout(()=>{carte.invalidateSize();carte.setView([p.y,p.x],18);},60);}}else ouvrir(c.dataset.bv);});
-  lierSync(); if($("#btnPan")) $("#btnPan").onclick=()=>{modePanneau=!modePanneau;toast(modePanneau?"Cliquez sur la carte à l'endroit du panneau":"Ajout terminé");rendreListe();carte.getContainer().style.cursor=modePanneau?"crosshair":"";};
-  if($("#impPan")) $("#impPan").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(tx=>{let n=0,ko=0;
-    tx.replace(/^\ufeff/,"").split(/\r?\n/).filter(Boolean).forEach((l,k)=>{const [ad,la,lo]=l.split(";"); if(k===0&&/adresse/i.test(ad||"")) return;
-      const y=parseFloat((la||"").replace(",",".")),x=parseFloat((lo||"").replace(",","."));
-      if(!ad||isNaN(x)||isNaN(y)){ko++;return;}
-      panneaux.push({x,y,bv:bvDuPoint(x,y),adresse:ad.trim()});n++;});
-    SV("bb2_panneaux",panneaux);toast(`${n} panneaux importés${ko?`, ${ko} ignorés`:""}`);rendreListe();majEpingles();});};
+  lierSync(); 
 }
 // Bureaux dont le périmètre a changé entre 2019 et 2022 (inscrits 24 : 1 319 puis 948 ; 25 : 679 puis 1 052).
 const PERIM={"0024":"le périmètre de ce bureau a changé entre 2019 et 2022 : environ 370 inscrits sont passés du bureau 24 au bureau 25. Les chiffres de 2017 et 2019 portent sur l'ancien périmètre.",
