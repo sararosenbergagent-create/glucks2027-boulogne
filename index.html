@@ -1210,15 +1210,43 @@ function carteBV(i,court){const b=B[i],s=STAT[b._statut],al=alertes(b),c=cibles(
 const ADM_H="17c9e2385372504b561d2fad277745ef5aa9f54ffffd971e05f32c2724b051ab";
 let ADM_OK=false;
 function tout(){rendreListe(); if(sel&&$("#detail").style.display==="block") rendreDetail();}
+/*tableau-avancement*/
+function horsCouvSet(){ return new Set(IDS.flatMap(j=>B[j].lieux.filter(x=>x[0]==="marche"||x[1]==="Grand Place"||x[0]==="centre_commercial").map(x=>x[1])).concat(["Centre commercial Les Passages"],LIEUX_AUTO.map(l=>l.nom))); }
+function dateCourte(d){ d=String(d||""); return /^\d{4}-\d{2}-\d{2}/.test(d)?d.slice(8,10)+"/"+d.slice(5,7):""; }
+function avancementHTML(){
+  const o=classer(), HC=horsCouvSet();
+  const tete=`<h4 style="margin-top:10px">Avancement du terrain</h4>`;
+  if(canal==="affichage") return tete+`<p style="font-size:13px">En affichage, l'avancement se lit panneau par panneau dans la liste des panneaux ci-dessus. Choisissez Porte-à-porte ou Tractage à l'étape 1 pour voir l'avancement de ces activités.</p>`;
+  const pap=canal==="pap";
+  const lig=o.map(i=>{ const b=B[i], l=(suivi[i]||[]).filter(x=>pap?x.type==="porte-à-porte":(x.type==="tractage"&&!HC.has(x.lieu)));
+    const portes=l.reduce((t,x)=>t+(+x.portes||0),0), tracts=l.reduce((t,x)=>t+(+x.tracts||0),0);
+    const der=l.map(x=>String(x.date||"")).sort().pop()||"";
+    return {i,b,n:l.length,portes,tracts,der,pct:b.menages_estimes?Math.round(100*portes/b.menages_estimes):null}; });
+  const prio=lig.filter(x=>x.b._statut==="prio"), prioFaits=prio.filter(x=>x.n).length;
+  const tot=lig.reduce((t,x)=>t+(pap?x.portes:x.tracts),0);
+  const th='style="text-align:left;padding:4px 3px;border-bottom:1px solid #ccc;font-size:12px"', td='style="padding:4px 3px;border-bottom:1px solid #eee;font-size:12.5px;vertical-align:top"';
+  const rows=lig.map(x=>`<tr><td ${td}><a href="#" data-av="${x.i}" style="color:var(--encre);font-weight:700">${+x.i}</a></td><td ${td}><span class="pastille ${STAT[x.b._statut][1]}" style="font-size:11px;white-space:normal">${STAT[x.b._statut][0]}</span></td>`
+    +(pap?`<td ${td} class="num">${fr(x.portes)} / ${fr(x.b.menages_estimes)}</td><td ${td} class="num"><b>${x.pct==null?"":x.pct+" %"}</b></td>`
+         :`<td ${td} class="num">${fr(x.tracts)}</td><td ${td} class="num">${x.n}</td>`)
+    +`<td ${td}>${x.n?dateCourte(x.der):"<span style=\"color:var(--encre3)\">jamais</span>"}</td></tr>`).join("");
+  let lieux="";
+  if(!pap){ const ll=LIEUX_AUTO.map(L=>{ const f=Object.values(suivi).flat().filter(x=>x.type==="tractage"&&(x.lieu===L.nom||(L.id==="grand-place"&&x.lieu==="Centre commercial Les Passages")));
+      return `<tr><td ${td}>${esc(L.nom)}</td><td ${td} class="num">${fr(f.reduce((t,x)=>t+(+x.tracts||0),0))}</td><td ${td} class="num">${f.length}</td><td ${td}>${f.length?dateCourte(f.map(x=>String(x.date||"")).sort().pop()):"<span style=\"color:var(--encre3)\">jamais</span>"}</td></tr>`; }).join("");
+    lieux=`<p style="font-size:13px;margin:12px 0 4px"><b>Lieux de passage de toute la ville</b> (comptés à part)</p><table style="width:100%;border-collapse:collapse"><tr><th ${th}>Lieu</th><th ${th}>Tracts</th><th ${th}>Sorties</th><th ${th}>Dernier</th></tr>${ll}</table>`; }
+  return tete+`<p style="font-size:13px">${pap?"Porte-à-porte":"Tractage"} (change avec l'étape 1), bureaux dans l'ordre du classement actuel. Prioritaires déjà visités : <b>${prioFaits} sur ${prio.length}</b>. Total : <b>${fr(tot)}</b> ${pap?"portes frappées":"tracts donnés"}.</p>`
+    +`<div style="max-height:60vh;overflow:auto;border:1px solid #ddd;border-radius:8px"><table style="width:100%;border-collapse:collapse"><tr><th ${th}>Bur.</th><th ${th}>Statut</th>${pap?`<th ${th}>Portes faites / estimées</th><th ${th}>%</th>`:`<th ${th}>Tracts</th><th ${th}>Sorties</th>`}<th ${th}>Dernier</th></tr>${rows}</table></div>`
+    +lieux+`<p style="font-size:12px;color:var(--encre3)">Ne compte que les fiches de fin de mission enregistrées. Portes estimées = ménages estimés du bureau. Nombre de tracts = estimation déclarée.</p>`;
+}
 function adminHTML(){
   if(!ADM_OK) return `<p style="font-size:13px;margin-top:10px">Réservé à l'équipe d'animation. Mot de passe :</p><p><input id="admPwd" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:55%"> <button class="btn" id="admVoir" type="button" aria-label="Afficher le mot de passe" title="Afficher le mot de passe">👁</button> <button class="btn" id="admGo">Déverrouiller</button></p>`;
   const nat=SCR.p22||SCR.e24;
-  return `<h4 style="margin-top:10px">Scrutins pris en compte</h4>${SRV_CFG?`<p style="font-size:13px">Le réglage s'applique à tous les téléphones (enregistré dans le Google Sheet).</p>`:`<p class="lecture" style="border-left:3px solid var(--prio);padding-left:8px"><b>Attention :</b> le script Google n'est pas encore à jour. Les cases ne s'appliquent qu'à ce téléphone et ne sont pas enregistrées.</p>`}
+  return `${avancementHTML()}<h4 style="margin-top:10px">Scrutins pris en compte</h4>${SRV_CFG?`<p style="font-size:13px">Le réglage s'applique à tous les téléphones (enregistré dans le Google Sheet).</p>`:`<p class="lecture" style="border-left:3px solid var(--prio);padding-left:8px"><b>Attention :</b> le script Google n'est pas encore à jour. Les cases ne s'appliquent qu'à ce téléphone et ne sont pas enregistrées.</p>`}
    ${SCRUTINS.map(([k,l])=>`<label style="display:flex;gap:8px;align-items:center;padding:3px 0"><input type="checkbox" class="scr" data-k="${k}" ${SCR[k]?"checked":""}>${l}</label>`).join("")}
    ${nat?"":`<p class="lecture" style="border-left:3px solid var(--prio);padding-left:8px"><b>Attention :</b> sans présidentielle 2022 ni européennes 2024, le classement ne repose plus sur le vote national. Il n'est pas fiable.</p>`}
    <p style="font-size:12.5px;color:var(--encre3)">Municipales 2026 : 20 % du potentiel du bureau (liste de Judith Shan). Partielle 2025 : n'entre pas dans le classement, elle affiche seulement un repère et les groupes de second tour.</p>
    <h4 style="margin-top:10px">Connexion au Google Sheet</h4><p style="font-size:13px">Coller l'URL du script déployé (voir la notice). Vide : les sorties restent sur ce téléphone.</p><input id="syncUrl" type="text" placeholder="https://script.google.com/macros/s/..." value="${SYNC.url}" style="width:100%"><p><button class="btn" id="syncOk">Enregistrer le lien</button> ${SYNC.file.length?`<button class="btn" id="syncNow">Envoyer ${SYNC.file.length} en attente</button>`:""} <button class="btn" id="syncGet">Récupérer du Sheet</button></p>`;}
 function lierAdmin(){
+  document.querySelectorAll("[data-av]").forEach(a=>a.onclick=e=>{e.preventDefault(); ouvrir(a.dataset.av);});
   const g=$("#admGo"); if(g){ const p=$("#admPwd");
     const go=async()=>{ try{ const h=[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(p.value)))].map(x=>x.toString(16).padStart(2,"0")).join("");
       if(h===ADM_H){ADM_OK=true;ADM_PWD=p.value; tout(); toast("Admin déverrouillé");} else toast("Mot de passe incorrect"); }
