@@ -1102,7 +1102,7 @@ carte.fitBounds(coucheBV.getBounds(),{padding:[8,8]});
 /*etiq-interieur*/const PT_INT={};
 function ptInterieur(id){ if(PT_INT[id]) return PT_INT[id];
   const f=GEO.features.find(f=>f.properties.bv===id), g=f.geometry, P=g.type==="MultiPolygon"?g.coordinates:[g.coordinates];
-  const k=Math.cos(48.84*Math.PI/180), seg=[]; P.forEach(p=>p.forEach(r=>{for(let i=0,j=r.length-1;i<r.length;j=i++) seg.push([r[j][0]*k,r[j][1],r[i][0]*k,r[i][1]]);}));
+  /*generique-kit*/const k=Math.cos(couches[id].getBounds().getCenter().lat*Math.PI/180), seg=[]; P.forEach(p=>p.forEach(r=>{for(let i=0,j=r.length-1;i<r.length;j=i++) seg.push([r[j][0]*k,r[j][1],r[i][0]*k,r[i][1]]);}));
   const dist=(x,y)=>{x*=k;let m=1e9;for(const[a,b,c,d]of seg){const dx=c-a,dy=d-b,l=dx*dx+dy*dy;let u=l?((x-a)*dx+(y-b)*dy)/l:0;u=Math.max(0,Math.min(1,u));const e=Math.hypot(x-a-u*dx,y-b-u*dy);if(e<m)m=e;}return m;};
   const bb=couches[id].getBounds(); let x0=bb.getWest(),x1=bb.getEast(),y0=bb.getSouth(),y1=bb.getNorth(), best=null, bd=-1;
   for(let pas=0;pas<3;pas++){ const N=pas?10:30, sx=(x1-x0)/N, sy=(y1-y0)/N;
@@ -1111,7 +1111,7 @@ function ptInterieur(id){ if(PT_INT[id]) return PT_INT[id];
   const c=bb.getCenter(); return PT_INT[id]=best?L.latLng(best[1],best[0]):c; }
 const etiq=L.layerGroup(IDS.map(i=>L.marker(ptInterieur(i),{icon:L.divIcon({className:"etiq",html:String(+i),iconSize:[22,14]}),interactive:false}))).addTo(carte);
 /*emojis-carte*/const EMO_CARTE={ecole:["🏫","École"],station:["🚇","Métro / gare"],marche:["🧺","Marché"],poste:["📮","Bureau de poste"],"Supermarché":["🛒","Supermarché"],"Supérette":["🏪","Supérette"]}, ZOOM_EMO=15.5;
-function adrProche(x,y){const c=Math.cos(y*Math.PI/180);let m=null,d=1e9;D.index_adresses.forEach(a=>{const e=Math.hypot((a[2]-x)*c,a[3]-y);if(e<d){d=e;m=a;}});return m?(d*111320<15?"":"près du ")+m[0].replace(/\s*\d{5}\s+Boulogne-Billancourt$/i,""):"";}
+function adrProche(x,y){const c=Math.cos(y*Math.PI/180);let m=null,d=1e9;D.index_adresses.forEach(a=>{const e=Math.hypot((a[2]-x)*c,a[3]-y);if(e<d){d=e;m=a;}});return m?(d*111320<15?"":"près du ")+m[0].replace(/\s*\d{5}\s+\D+$/,""):"";}
 const OBJ_EMO=(D.points_passage||[]).filter(p=>["ecole","station","marche","poste"].includes(p.t)).map(p=>({e:EMO_CARTE[p.t],nom:p.nom||EMO_CARTE[p.t][1],adr:null,x:p.x,y:p.y,bv:p.bv}))
   .concat((D.commerces||[]).filter(c=>EMO_CARTE[c[4]]).map(c=>{const k=c[0].split(" · ");return {e:EMO_CARTE[c[4]],nom:k[0],adr:k[1]||null,x:c[2],y:c[3],bv:c[1]};}));
 function bulleLieu(o){const l=LIEUX_AUTO.find(x=>x.nom===o.nom);if(o.adr==null)o.adr=adrProche(o.x,o.y);
