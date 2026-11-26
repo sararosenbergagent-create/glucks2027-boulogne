@@ -1100,7 +1100,17 @@ const coucheBV=L.geoJSON(GEO,{renderer:L.svg(),style:()=>({weight:1,color:"#5b57
   l.bindTooltip(()=>`<b>Bureau ${+i}</b> · ${STAT[B[i]._statut][0]}`,{sticky:true});}}).addTo(carte);
 carte.fitBounds(coucheBV.getBounds(),{padding:[8,8]});
 const etiq=L.layerGroup(IDS.map(i=>L.marker(couches[i].getBounds().getCenter(),{icon:L.divIcon({className:"etiq",html:String(+i),iconSize:[22,14]}),interactive:false}))).addTo(carte);
-const lieux=L.layerGroup((D.points_passage||[]).filter(p=>["station","marche","supermarche","poste"].includes(p.t)).map(p=>L.circleMarker([p.y,p.x],{radius:p.t==="station"||p.t==="marche"?7:5,color:"#fff",weight:1.5,fillColor:p.t==="station"?"#1c1b19":p.t==="marche"?"#b0144f":"#6b4f8a",fillOpacity:1}).bindTooltip(`<b>${esc(p.nom||D.lib_points[p.t])}</b><br>${D.lib_points[p.t]}`).on("click",()=>{const l=LIEUX_AUTO.find(x=>x.nom===p.nom); if(l) ouvrirLieu(l.id);})));
+/*emojis-carte*/const EMO_CARTE={ecole:["🏫","École"],station:["🚇","Métro / gare"],marche:["🧺","Marché"],poste:["📮","Bureau de poste"],"Supermarché":["🛒","Supermarché"],"Supérette":["🏪","Supérette"]}, ZOOM_EMO=15.5;
+function adrProche(x,y){const c=Math.cos(y*Math.PI/180);let m=null,d=1e9;D.index_adresses.forEach(a=>{const e=Math.hypot((a[2]-x)*c,a[3]-y);if(e<d){d=e;m=a;}});return m?(d*111320<15?"":"près du ")+m[0].replace(/\s*\d{5}\s+Boulogne-Billancourt$/i,""):"";}
+const OBJ_EMO=(D.points_passage||[]).filter(p=>["ecole","station","marche","poste"].includes(p.t)).map(p=>({e:EMO_CARTE[p.t],nom:p.nom||EMO_CARTE[p.t][1],adr:null,x:p.x,y:p.y,bv:p.bv}))
+  .concat((D.commerces||[]).filter(c=>EMO_CARTE[c[4]]).map(c=>{const k=c[0].split(" · ");return {e:EMO_CARTE[c[4]],nom:k[0],adr:k[1]||null,x:c[2],y:c[3],bv:c[1]};}));
+function bulleLieu(o){const l=LIEUX_AUTO.find(x=>x.nom===o.nom);if(o.adr==null)o.adr=adrProche(o.x,o.y);
+  return `<div style="font-size:14px;line-height:1.35"><b>${o.e[0]} ${esc(o.nom)}</b><br>${o.e[1]}${o.adr?`<br>${esc(o.adr)}`:""}${B[o.bv]?`<br>Secteur ${+o.bv}`:""}${l?`<br><a href="#" data-lieuauto="${l.id}">Ouvrir la fiche du lieu</a>`:""}</div>`;}
+const lieux=L.layerGroup(OBJ_EMO.map(o=>{o.m=L.marker([o.y,o.x],{icon:L.divIcon({className:"emo-carte",html:o.e[0],iconSize:[30,30],iconAnchor:[15,15]}),keyboard:false,riseOnHover:true}).bindPopup(()=>bulleLieu(o),{offset:[0,-8]});return o.m;}));
+document.addEventListener("click",e=>{const a=e.target.closest("[data-lieuauto]");if(a){e.preventDefault();carte.closePopup();ouvrirLieu(a.dataset.lieuauto);}});
+const stEmo=document.createElement("style");stEmo.textContent=".emo-carte{font-size:20px;line-height:30px;text-align:center;filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1px #fff);cursor:pointer}.surligne{font-size:26px;animation:clign .6s ease-in-out 4 alternate}@keyframes clign{from{transform:scale(1)}to{transform:scale(1.5)}}";document.head.appendChild(stEmo);
+function majEmo(){carte.getZoom()>=ZOOM_EMO?lieux.addTo(carte):carte.removeLayer(lieux);}
+carte.on("zoomend",majEmo);
 let marq=null;
 const COUL_REC={"porte-à-porte":"#d55e00","tractage":"#0072b2","affichage":"#009E73"};
 const epingles=L.layerGroup().addTo(carte);
@@ -1131,6 +1141,7 @@ const leg=L.control({position:window.innerWidth<=820?"topright":"bottomleft"}); 
   d.innerHTML=`<summary>Légende</summary>`+`<div class="sep" style="margin-top:0;padding-top:0;border:0">Du plus utile au moins utile</div>`+Object.entries(STAT).map(([k,s],n)=>`<div><b style="background:${s[2]}${k==="stop"?";border:1px dashed #8C8C8C;box-sizing:border-box":""}"></b>${n+1}. ${s[0]}${k==="stop"?` <span style="color:var(--encre2)">(vote LFI ou Zemmour/RN parmi les plus forts)</span>`:""}</div>`).join("")
    +`<div style="margin-top:4px"><q style="background:#6a1b9a"></q>Panneau d'affichage libre</div>`
    +`<div><q style="background:#6a1b9a;box-shadow:0 0 0 2px #C62828"></q>Panneau à recoller (notre affiche recouverte ou absente)</div>`
+   +`<div class="sep">Lieux (en zoomant, touchez pour l'adresse)</div><div>🏫 École · 🚇 Métro / gare · 🧺 Marché</div><div>📮 Poste · 🛒 Supermarché · 🏪 Supérette</div>`
    +`<div class="sep">Épingles de terrain</div>`
    +`<div><s style="background:#d55e00"></s>Sortie porte-à-porte</div>`
    +`<div><s style="background:#0072b2"></s>Sortie tractage</div>`
@@ -1140,7 +1151,7 @@ const leg=L.control({position:window.innerWidth<=820?"topright":"bottomleft"}); 
    +`<div><span style="display:inline-block;width:8px;height:8px;transform:rotate(45deg);background:#fff;border:2px solid #0D0D0D;margin:0 8px 0 2px"></span>Immeuble entamé ou non commencé</div>`;
   return d;}; leg.addTo(carte);
 function styler(){IDS.forEach(i=>couches[i].setStyle({fillColor:STAT[B[i]._statut][2],weight:i===sel?3.5:1,color:i===sel?"#1c1b19":"#5b574f",fillOpacity:B[i]._statut==="sec"?.45:B[i]._statut==="stop"?.7:.5,dashArray:B[i]._statut==="stop"&&i!==sel?"4 3":null}));
-  canal==="tract"?lieux.addTo(carte):carte.removeLayer(lieux); if(sel) couches[sel].bringToFront();}
+  majEmo(); if(sel) couches[sel].bringToFront();}
 
 // ---------- rendu
 const IC={ok:`<svg class="i ok" viewBox="0 0 24 24"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
@@ -1716,8 +1727,9 @@ $$(".onglets button").forEach(b=>b.onclick=()=>montrer(b.dataset.o));
 
 // ---------- recherche et géolocalisation
 const IDX=D.index_adresses.map(([lib,bv,x,y])=>[lib.replace(/^(\d+)\s*(bis|ter|quater)\b/i,(_,d,s)=>d+" "+s.toLowerCase()),bv,x,y]).concat((D.commerces||[]).map(([l,bv,x,y,t])=>[l,bv,x,y,t])).map(([lib,bv,x,y,t])=>({lib,bv,x,y,t,n:norm(lib+(t?" "+t:"")),no:t?0:(parseInt(lib)||0),suf:t?"":((lib.match(/^\d+\s*(bis|ter|quater|[a-z])(?=\s)/i)||[])[1]||"").toLowerCase(),rue:t?lib:lib.replace(/^\d+\s*(bis|ter|quater|[a-z](?=\s))?\s*/i,"")})).sort((a,b)=>a.rue.localeCompare(b.rue,"fr")||a.no-b.no);
+let surl=null; function surligner(l){if(surl){carte.removeLayer(surl);surl=null;} if(!l.length) return; surl=L.layerGroup(l.map(a=>L.marker([a.y,a.x],{icon:L.divIcon({className:"emo-carte surligne",html:(EMO_CARTE[a.t]||["📍"])[0],iconSize:[36,36],iconAnchor:[18,18]}),zIndexOffset:1000}).bindTooltip(esc(a.lib),{direction:"top"}))).addTo(carte); if(l.length>1) carte.fitBounds(L.latLngBounds(l.map(a=>[a.y,a.x])),{padding:[40,40],maxZoom:16});}
 function chercher(v){const n=norm(v);if(n.length<2){$("#res").classList.remove("on");return;}const m=n.split(" ");
-  const r=IDX.filter(a=>m.every(w=>a.n.includes(w))).slice(0,8);
+  const r=IDX.filter(a=>m.every(w=>a.n.includes(w))).slice(0,8); surligner(r.filter(a=>a.t));
   $("#res").innerHTML=r.length?r.map((a,k)=>`<button data-k="${k}">${esc(a.lib)}<small>${a.t?a.t+" · ":""}Bureau ${+a.bv} · ${STAT[B[a.bv]._statut][0]}</small></button>`).join(""):`<div style="padding:12px 14px;color:var(--encre2)">Aucune adresse trouvée à Boulogne.</div>`;
   $("#res").classList.add("on");$$("#res button").forEach(b=>b.onmousedown=e=>{e.preventDefault();const a=r[+b.dataset.k];dernAdr=a.t?null:a;poser(a.y,a.x,a.lib);ici=a.bv;ouvrir(a.bv);$("#res").classList.remove("on");$("#q").blur();});}
 $("#q").oninput=e=>chercher(e.target.value); $("#q").onblur=()=>setTimeout(()=>$("#res").classList.remove("on"),150);
